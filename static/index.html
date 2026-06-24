@@ -70,9 +70,19 @@
           </label>
 
           <div class="roi-tools">
+            <button id="drawRoi" class="ghost" type="button">Desenhar ROI</button>
+            <button id="finishRoi" class="ghost" type="button">Fechar ROI</button>
             <button id="resetRoi" class="ghost" type="button">ROI padrao</button>
             <button id="useFullFrame" class="ghost" type="button">Tela inteira</button>
           </div>
+
+          <fieldset>
+            <legend>Precisao</legend>
+            <label>FPS analise<input id="analysisFps" type="number" min="0.2" max="10" step="0.2" value="2"></label>
+            <label>Confianca YOLO<input id="confidenceThreshold" type="range" min="0.05" max="0.95" step="0.05" value="0.35"></label>
+            <label>Area minima<input id="minBoxArea" type="range" min="0.0005" max="0.05" step="0.0005" value="0.005"></label>
+            <label>E-mail da demo<input id="notificationEmail" type="email" placeholder="cliente@empresa.com"></label>
+          </fieldset>
 
           <fieldset>
             <legend>Intrusao por horario</legend>
@@ -98,6 +108,21 @@
               <label>Tempo (s)<input id="groupDwell" type="number" min="5" max="3600" value="120"></label>
             </div>
           </fieldset>
+
+          <section class="runtime-panel">
+            <div>
+              <span>Pessoas na ROI</span>
+              <strong id="roiPeopleMetric">0</strong>
+            </div>
+            <div>
+              <span>Inferencia</span>
+              <strong id="inferMetric">--</strong>
+            </div>
+            <div>
+              <span>Grupo parado</span>
+              <strong id="groupProgressMetric">0%</strong>
+            </div>
+          </section>
 
           <section>
             <div class="section-title">

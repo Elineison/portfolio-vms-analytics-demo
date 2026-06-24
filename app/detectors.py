@@ -43,20 +43,27 @@ class PeopleDetector:
             )
             logger.warning("people_detector_yolo_unavailable %s", self.stats.last_error)
 
-    def detect(self, frame: np.ndarray) -> list[Detection]:
+    def detect(
+        self,
+        frame: np.ndarray,
+        confidence: float | None = None,
+        min_area_ratio: float = 0.0,
+    ) -> list[Detection]:
         if self._model is None:
             return []
 
+        height, width = frame.shape[:2]
+        frame_area = float(max(1, width * height))
+        min_area = max(0.0, float(min_area_ratio)) * frame_area
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self._model.predict(
             source=rgb,
             verbose=False,
-            conf=self.confidence,
+            conf=float(confidence or self.confidence),
             classes=[0],
             max_det=50,
         )
         detections: list[Detection] = []
-        height, width = frame.shape[:2]
         for result in results:
             boxes = getattr(result, "boxes", None)
             if boxes is None:
@@ -71,9 +78,10 @@ class PeopleDetector:
                 y2 = max(0, min(height - 1, y2))
                 if x2 <= x1 or y2 <= y1:
                     continue
+                if float((x2 - x1) * (y2 - y1)) < min_area:
+                    continue
                 detections.append(Detection(
                     bbox=(x1, y1, x2, y2),
                     confidence=float(boxes.conf[idx]),
                 ))
         return detections
-

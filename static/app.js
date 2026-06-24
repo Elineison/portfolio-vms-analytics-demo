@@ -13,6 +13,7 @@ let state = {
   ws: null,
   roi: [...defaultRoi],
   dragIndex: null,
+  drawMode: false,
   statusTimer: null,
   eventsTimer: null,
 };
@@ -32,6 +33,10 @@ async function api(path, options = {}) {
 function activeAnalytics() {
   return {
     enabled: $("analyticsEnabled").checked,
+    analysis_fps: Number($("analysisFps").value || 2),
+    confidence_threshold: Number($("confidenceThreshold").value || 0.35),
+    min_box_area_ratio: Number($("minBoxArea").value || 0.005),
+    notification_email: $("notificationEmail").value.trim() || null,
     roi: state.roi,
     after_hours: {
       enabled: $("afterEnabled").checked,
@@ -55,6 +60,10 @@ function loadAnalytics(camera) {
   const group = analytics.group_loitering || {};
   state.roi = analytics.roi?.length >= 3 ? analytics.roi : [...defaultRoi];
   $("analyticsEnabled").checked = Boolean(analytics.enabled);
+  $("analysisFps").value = analytics.analysis_fps || 2;
+  $("confidenceThreshold").value = analytics.confidence_threshold || 0.35;
+  $("minBoxArea").value = analytics.min_box_area_ratio || 0.005;
+  $("notificationEmail").value = analytics.notification_email || "";
   $("afterEnabled").checked = Boolean(after.enabled);
   $("afterStart").value = (after.start || "18:00").slice(0, 5);
   $("afterEnd").value = (after.end || "06:00").slice(0, 5);
@@ -92,7 +101,9 @@ function renderEvents(events) {
   events.forEach((event) => {
     const item = document.createElement("div");
     item.className = "event-item";
-    item.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.message)}</span>`;
+    const image = event.snapshot_url ? `<a href="${event.snapshot_url}" target="_blank" rel="noreferrer"><img src="${event.snapshot_url}" alt="Snapshot da ocorrencia"></a>` : "";
+    const mail = event.notification_email ? `<span>E-mail: ${escapeHtml(event.notification_status || "pendente")}</span>` : "";
+    item.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.message)}</span>${mail}${image}`;
     list.appendChild(item);
   });
 }
@@ -123,6 +134,11 @@ async function refreshRuntimeStatus() {
     const age = status.last_frame_age_s === null ? "--" : `${status.last_frame_age_s.toFixed(1)}s`;
     const size = status.width && status.height ? `${status.width}x${status.height}` : "sem frame";
     $("runtimeBadge").textContent = `${status.state} | ${size} | ROI: ${status.detections} pessoa(s) | frame: ${age}`;
+    const analysis = status.analysis || {};
+    const group = analysis.group_loitering || {};
+    $("roiPeopleMetric").textContent = analysis.roi_people ?? status.detections ?? 0;
+    $("inferMetric").textContent = analysis.last_infer_ms === undefined ? "--" : `${analysis.last_infer_ms} ms`;
+    $("groupProgressMetric").textContent = `${Math.round((group.progress || 0) * 100)}%`;
   } catch (error) {
     $("runtimeBadge").textContent = "Status indisponivel";
   }
@@ -169,11 +185,46 @@ function closePreview() {
 }
 
 function canvasPoint(event) {
-  const canvas = $("roiCanvas");
-  const rect = canvas.getBoundingClientRect();
+  const rect = imageContentRect();
   return {
     x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
     y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
+  };
+}
+
+function imageContentRect() {
+  const image = $("previewImage");
+  const viewer = $("roiCanvas").getBoundingClientRect();
+  if (!image.naturalWidth || !image.naturalHeight) return viewer;
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const viewerRatio = viewer.width / viewer.height;
+  if (viewerRatio > imageRatio) {
+    const width = viewer.height * imageRatio;
+    return {
+      left: viewer.left + (viewer.width - width) / 2,
+      top: viewer.top,
+      width,
+      height: viewer.height,
+    };
+  }
+  const height = viewer.width / imageRatio;
+  return {
+    left: viewer.left,
+    top: viewer.top + (viewer.height - height) / 2,
+    width: viewer.width,
+    height,
+  };
+}
+
+function imageRectInCanvas() {
+  const canvas = $("roiCanvas");
+  const canvasRect = canvas.getBoundingClientRect();
+  const imageRect = imageContentRect();
+  return {
+    left: imageRect.left - canvasRect.left,
+    top: imageRect.top - canvasRect.top,
+    width: imageRect.width,
+    height: imageRect.height,
   };
 }
 
@@ -195,6 +246,7 @@ function nearestPoint(point) {
 function drawRoi() {
   const canvas = $("roiCanvas");
   const rect = canvas.getBoundingClientRect();
+  const imageRect = imageRectInCanvas();
   const dpr = window.devicePixelRatio || 1;
   canvas.width = Math.max(1, Math.round(rect.width * dpr));
   canvas.height = Math.max(1, Math.round(rect.height * dpr));
@@ -204,20 +256,20 @@ function drawRoi() {
   if (!state.roi.length) return;
   ctx.beginPath();
   state.roi.forEach((point, index) => {
-    const x = point.x * rect.width;
-    const y = point.y * rect.height;
+    const x = imageRect.left + point.x * imageRect.width;
+    const y = imageRect.top + point.y * imageRect.height;
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
-  ctx.closePath();
+  if (!state.drawMode || state.roi.length >= 3) ctx.closePath();
   ctx.fillStyle = "rgba(20, 184, 166, 0.18)";
   ctx.strokeStyle = "#14b8a6";
   ctx.lineWidth = 2;
-  ctx.fill();
+  if (state.roi.length >= 3) ctx.fill();
   ctx.stroke();
   state.roi.forEach((point) => {
     ctx.beginPath();
-    ctx.arc(point.x * rect.width, point.y * rect.height, 7, 0, Math.PI * 2);
+    ctx.arc(imageRect.left + point.x * imageRect.width, imageRect.top + point.y * imageRect.height, 7, 0, Math.PI * 2);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
     ctx.strokeStyle = "#0f766e";
@@ -266,11 +318,25 @@ $("saveConfig").onclick = saveConfig;
 $("stopPreview").onclick = closePreview;
 $("refreshCameras").onclick = refreshCameras;
 $("refreshEvents").onclick = refreshEvents;
+$("drawRoi").onclick = () => {
+  state.drawMode = true;
+  state.roi = [];
+  state.dragIndex = null;
+  drawRoi();
+};
+$("finishRoi").onclick = () => {
+  if (state.roi.length >= 3) {
+    state.drawMode = false;
+    drawRoi();
+  }
+};
 $("resetRoi").onclick = () => {
+  state.drawMode = false;
   state.roi = [...defaultRoi];
   drawRoi();
 };
 $("useFullFrame").onclick = () => {
+  state.drawMode = false;
   state.roi = [
     { x: 0.02, y: 0.02 },
     { x: 0.98, y: 0.02 },
@@ -282,6 +348,11 @@ $("useFullFrame").onclick = () => {
 
 $("roiCanvas").addEventListener("pointerdown", (event) => {
   if (!state.activeCamera) return;
+  if (state.drawMode) {
+    state.roi.push(canvasPoint(event));
+    drawRoi();
+    return;
+  }
   state.dragIndex = nearestPoint(canvasPoint(event));
 });
 

@@ -82,3 +82,10 @@ class JsonStore:
             if camera_id:
                 events = [event for event in events if event.camera_id == camera_id]
             return list(reversed(events[-100:]))
+
+    def get_event(self, event_id: str) -> Event | None:
+        with self._lock:
+            for event in self._events:
+                if event.id == event_id:
+                    return event
+            return None

@@ -28,6 +28,10 @@ class GroupLoiteringRule(BaseModel):
 
 class AnalyticsConfig(BaseModel):
     enabled: bool = False
+    analysis_fps: float = Field(default=2.0, ge=0.2, le=10.0)
+    confidence_threshold: float = Field(default=0.35, ge=0.05, le=0.95)
+    min_box_area_ratio: float = Field(default=0.005, ge=0.0005, le=0.2)
+    notification_email: str | None = Field(default=None, max_length=254)
     roi: list[Point] = Field(default_factory=lambda: [
         Point(x=0.15, y=0.15),
         Point(x=0.85, y=0.15),
@@ -76,6 +80,7 @@ class RuntimeStatus(BaseModel):
     height: int | None = None
     detections: int = 0
     analytics_enabled: bool = False
+    analysis: dict = Field(default_factory=dict)
 
 
 class Event(BaseModel):
@@ -88,4 +93,7 @@ class Event(BaseModel):
     started_at: str
     ended_at: str | None = None
     people_count: int = 0
-
+    snapshot_file: str | None = None
+    snapshot_url: str | None = None
+    notification_email: str | None = None
+    notification_status: str | None = None

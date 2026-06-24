@@ -284,7 +284,12 @@ input {
   height: 20px;
 }
 
-.roi-tools,
+.roi-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .two-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -307,6 +312,43 @@ legend {
 
 .event-item strong {
   color: var(--alert);
+}
+
+.event-item img {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0b1016;
+}
+
+.runtime-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.runtime-panel div {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.runtime-panel span,
+.runtime-panel strong {
+  display: block;
+}
+
+.runtime-panel span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.runtime-panel strong {
+  margin-top: 4px;
+  font-size: 17px;
 }
 
 @media (max-width: 1060px) {

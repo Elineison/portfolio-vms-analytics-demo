@@ -14,10 +14,16 @@ services:
       VMS_ANALYSIS_FPS: "2"
       VMS_YOLO_MODEL: yolov8n.pt
       VMS_YOLO_DEVICE: auto
-      VMS_SESSION_SECRET: change-me-before-deploy
+      VMS_SESSION_SECRET: ${VMS_SESSION_SECRET:-change-me-before-deploy}
+      VMS_ADMIN_TOKEN: ${VMS_ADMIN_TOKEN:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      VMS_SMTP_HOST: ${VMS_SMTP_HOST:-}
+      VMS_SMTP_PORT: ${VMS_SMTP_PORT:-587}
+      VMS_SMTP_USER: ${VMS_SMTP_USER:-}
+      VMS_SMTP_PASSWORD: ${VMS_SMTP_PASSWORD:-}
+      VMS_SMTP_FROM: ${VMS_SMTP_FROM:-}
+      VMS_SMTP_TLS: ${VMS_SMTP_TLS:-1}
     volumes:
       - ./data:/app/data
       - ./models:/app/models
-

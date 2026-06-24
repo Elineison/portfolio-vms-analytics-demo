@@ -177,9 +177,19 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VMS_SESSION_SECRET=valor-longo-aleatorio
 VMS_ADMIN_TOKEN=valor-longo-aleatorio
+VMS_SMTP_HOST=smtp.gmail.com
+VMS_SMTP_PORT=587
+VMS_SMTP_USER=seu-email@gmail.com
+VMS_SMTP_PASSWORD=senha-de-app-do-google
+VMS_SMTP_FROM=seu-email@gmail.com
+VMS_SMTP_TLS=1
 ```
 
 O sistema usa o e-mail autenticado para envio de alertas da demo. Nao ha campo manual de e-mail por camera.
+
+Para demo real, nao definir `VMS_DEV_AUTH_EMAIL`. Essa variavel e apenas um bypass local de desenvolvimento e pula o login Google.
+
+Para Gmail SMTP, habilite verificacao em duas etapas na conta remetente e gere uma senha de app. Use a senha de app em `VMS_SMTP_PASSWORD`.
 
 ## LGPD e Separacao por Usuario
 

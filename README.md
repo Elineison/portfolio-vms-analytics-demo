@@ -89,13 +89,21 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VMS_SESSION_SECRET=valor-longo-aleatorio
 VMS_ADMIN_TOKEN=valor-longo-aleatorio
+VMS_SMTP_HOST=smtp.gmail.com
+VMS_SMTP_PORT=587
+VMS_SMTP_USER=seu-email@gmail.com
+VMS_SMTP_PASSWORD=senha-de-app-do-google
+VMS_SMTP_FROM=seu-email@gmail.com
+VMS_SMTP_TLS=1
 ```
 
 Use `.env.example` como base, sem versionar o `.env` real.
 
 Cada e-mail autenticado tem cameras, configuracoes, eventos e snapshots separados. O trial padrao e de 7 dias por e-mail.
 
-Em desenvolvimento, `VMS_DEV_AUTH_EMAIL=seu-email@gmail.com` cria uma sessao local para validar preview, ROI e analises. Para testar o fluxo real do usuario, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` e remova o bypass local.
+Para testar o fluxo real do usuario, configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e SMTP. Nao use `VMS_DEV_AUTH_EMAIL` na demo real, porque ele cria uma sessao local e pula o login Google.
+
+Em desenvolvimento, `VMS_DEV_AUTH_EMAIL=seu-email@gmail.com` ainda pode ser usado apenas para validar preview, ROI e analises rapidamente.
 
 Resetar trial:
 
@@ -135,6 +143,12 @@ VMS_YOLO_DEVICE=auto
 VMS_SESSION_SECRET=troque-este-valor
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+VMS_SMTP_HOST=smtp.gmail.com
+VMS_SMTP_PORT=587
+VMS_SMTP_USER=seu-email@gmail.com
+VMS_SMTP_PASSWORD=senha-de-app-do-google
+VMS_SMTP_FROM=seu-email@gmail.com
+VMS_SMTP_TLS=1
 ```
 
 ## Evidencias e e-mail
@@ -148,13 +162,15 @@ data/events/
 Se SMTP estiver configurado, o sistema envia a evidencia para o e-mail autenticado pelo Google. Configure:
 
 ```text
-VMS_SMTP_HOST=smtp.exemplo.com
+VMS_SMTP_HOST=smtp.gmail.com
 VMS_SMTP_PORT=587
-VMS_SMTP_USER=usuario
-VMS_SMTP_PASSWORD=senha
-VMS_SMTP_FROM=vms-demo@exemplo.com
+VMS_SMTP_USER=seu-email@gmail.com
+VMS_SMTP_PASSWORD=senha-de-app-do-google
+VMS_SMTP_FROM=seu-email@gmail.com
 VMS_SMTP_TLS=1
 ```
+
+No Gmail, use uma senha de app da conta remetente. Nao use a senha normal da conta Google.
 
 Sem SMTP configurado, a mensagem fica salva como `.eml` em:
 

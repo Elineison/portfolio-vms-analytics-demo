@@ -5,8 +5,11 @@ import smtplib
 from email.message import EmailMessage
 from pathlib import Path
 
+from app.env import load_env_file
 from app.schemas import Event
 
+
+load_env_file()
 
 class EvidenceMailer:
     def __init__(self, outbox_dir: Path) -> None:

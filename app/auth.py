@@ -7,9 +7,12 @@ from authlib.integrations.starlette_client import OAuth
 from fastapi import HTTPException, Request
 from starlette.config import Config
 
+from app.env import load_env_file
 from app.schemas import User
 from app.store import JsonStore
 
+
+load_env_file()
 
 SESSION_SECRET = os.getenv("VMS_SESSION_SECRET", "change-me-in-production")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")

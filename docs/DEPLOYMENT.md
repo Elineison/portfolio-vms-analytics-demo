@@ -123,3 +123,27 @@ rtsp://usuario:senha@192.168.1.50:554/Streaming/Channels/101
 
 Use substream quando a rede ou a GPU estiverem limitadas. Para demo de analytics, 720p costuma ser suficiente.
 
+## Evidencias e E-mail
+
+Snapshots de ocorrencia sao salvos em:
+
+```text
+./data/events/
+```
+
+Para envio real por e-mail, configurar no `docker-compose.yml`:
+
+```yaml
+VMS_SMTP_HOST: smtp.exemplo.com
+VMS_SMTP_PORT: "587"
+VMS_SMTP_USER: usuario
+VMS_SMTP_PASSWORD: senha
+VMS_SMTP_FROM: vms-demo@exemplo.com
+VMS_SMTP_TLS: "1"
+```
+
+Se SMTP nao estiver configurado, o sistema salva o e-mail gerado em:
+
+```text
+./data/outbox/
+```

@@ -10,6 +10,8 @@ O sistema permite cadastrar uma camera por URL RTSP, abrir preview via WebSocket
 
 - Intrusao fora do horario permitido em uma area da imagem.
 - Grupo parado/conversando: 3 ou mais pessoas dentro da area por mais de um tempo configuravel.
+- Snapshot JPEG da ocorrencia como evidencia visual.
+- Envio opcional da evidencia por e-mail quando SMTP estiver configurado.
 
 Este projeto foi desenhado para portfolio e demonstracao comercial. Ele nao depende de SDK proprietario, bancos reais, credenciais da Locktec, modelos privados ou dados de producao.
 
@@ -88,6 +90,31 @@ VMS_DATA_DIR=./data
 VMS_SESSION_TIMEOUT_S=300
 VMS_YOLO_MODEL=yolov8n.pt
 VMS_ANALYSIS_FPS=2
+```
+
+## Evidencias e e-mail
+
+Quando uma regra dispara, o backend salva um snapshot com overlay em:
+
+```text
+data/events/
+```
+
+Se a camera tiver um e-mail cadastrado, o sistema tenta enviar a evidencia usando SMTP. Configure:
+
+```text
+VMS_SMTP_HOST=smtp.exemplo.com
+VMS_SMTP_PORT=587
+VMS_SMTP_USER=usuario
+VMS_SMTP_PASSWORD=senha
+VMS_SMTP_FROM=vms-demo@exemplo.com
+VMS_SMTP_TLS=1
+```
+
+Sem SMTP configurado, a mensagem fica salva como `.eml` em:
+
+```text
+data/outbox/
 ```
 
 ## Principios importados do ecossistema real

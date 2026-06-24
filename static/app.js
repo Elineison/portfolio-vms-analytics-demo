@@ -20,6 +20,7 @@ let state = {
   drawMode: false,
   statusTimer: null,
   eventsTimer: null,
+  hasUnsavedConfig: false,
 };
 
 async function api(path, options = {}) {
@@ -58,6 +59,25 @@ function showAuth() {
 function showApp() {
   $("authScreen").classList.add("hidden");
   document.querySelector(".app-shell").classList.remove("hidden");
+}
+
+function setRoiEditorVisible(visible) {
+  state.roiEditorVisible = visible;
+  if (!visible) {
+    state.drawMode = false;
+    state.dragIndex = null;
+  }
+  ["drawRoi", "useFullFrame"].forEach((id) => $(id).classList.toggle("hidden", !visible));
+  $("editRoi").textContent = visible ? "Ocultar ROI" : "Editar ROI";
+  $("drawRoi").textContent = state.drawMode ? "Concluir ROI" : "Redesenhar";
+  drawRoi();
+}
+
+function markConfigDirty() {
+  if (!state.activeCamera) return;
+  state.hasUnsavedConfig = true;
+  $("analysisStateText").textContent = "Alterações pendentes";
+  $("systemStatus").textContent = "Configuração alterada";
 }
 
 function activeAnalytics() {
@@ -102,6 +122,7 @@ function loadAnalytics(camera) {
   $("groupEnabled").checked = Boolean(group.enabled);
   $("groupPeople").value = group.min_people || 3;
   $("groupDwell").value = group.dwell_s || 120;
+  state.hasUnsavedConfig = false;
   drawRoi();
 }
 
@@ -163,6 +184,10 @@ async function refreshMe() {
 
 async function refreshCameras() {
   state.cameras = await api("/api/cameras");
+  if (state.activeCamera) {
+    const updated = state.cameras.find((item) => item.id === state.activeCamera.id);
+    if (updated) state.activeCamera = updated;
+  }
   renderCameras();
 }
 
@@ -342,6 +367,7 @@ async function saveConfig() {
     state.activeCamera = camera;
     loadAnalytics(camera);
     await refreshCameras();
+    setRoiEditorVisible(false);
     $("systemStatus").textContent = "Análise aplicada";
     await refreshRuntimeStatus();
   } catch (error) {
@@ -396,32 +422,30 @@ $("googleLogin").addEventListener("click", (event) => {
 $("refreshCameras").onclick = refreshCameras;
 $("refreshEvents").onclick = refreshEvents;
 $("editRoi").onclick = () => {
-  state.roiEditorVisible = !state.roiEditorVisible;
-  ["drawRoi", "finishRoi", "resetRoi", "useFullFrame"].forEach((id) => $(id).classList.toggle("hidden", !state.roiEditorVisible));
-  $("editRoi").textContent = state.roiEditorVisible ? "Ocultar ROI" : "Editar ROI";
-  drawRoi();
+  setRoiEditorVisible(!state.roiEditorVisible);
 };
 $("drawRoi").onclick = () => {
-  state.roiEditorVisible = true;
+  if (state.drawMode) {
+    if (state.roi.length < 3) {
+      $("systemStatus").textContent = "A ROI precisa de pelo menos 3 pontos";
+      return;
+    }
+    state.drawMode = false;
+    $("drawRoi").textContent = "Redesenhar";
+    markConfigDirty();
+    drawRoi();
+    return;
+  }
+  setRoiEditorVisible(true);
   state.drawMode = true;
   state.roi = [];
   state.dragIndex = null;
-  drawRoi();
-};
-$("finishRoi").onclick = () => {
-  if (state.roi.length >= 3) {
-    state.drawMode = false;
-    drawRoi();
-  }
-};
-$("resetRoi").onclick = () => {
-  state.roiEditorVisible = true;
-  state.drawMode = false;
-  state.roi = [...defaultRoi];
+  $("drawRoi").textContent = "Concluir ROI";
+  markConfigDirty();
   drawRoi();
 };
 $("useFullFrame").onclick = () => {
-  state.roiEditorVisible = true;
+  setRoiEditorVisible(true);
   state.drawMode = false;
   state.roi = [
     { x: 0.02, y: 0.02 },
@@ -429,6 +453,7 @@ $("useFullFrame").onclick = () => {
     { x: 0.98, y: 0.98 },
     { x: 0.02, y: 0.98 },
   ];
+  markConfigDirty();
   drawRoi();
 };
 
@@ -436,6 +461,7 @@ $("roiCanvas").addEventListener("pointerdown", (event) => {
   if (!state.activeCamera || !state.roiEditorVisible) return;
   if (state.drawMode) {
     state.roi.push(canvasPoint(event));
+    markConfigDirty();
     drawRoi();
     return;
   }
@@ -445,6 +471,7 @@ $("roiCanvas").addEventListener("pointerdown", (event) => {
 $("roiCanvas").addEventListener("pointermove", (event) => {
   if (!state.roiEditorVisible || state.dragIndex === null) return;
   state.roi[state.dragIndex] = canvasPoint(event);
+  markConfigDirty();
   drawRoi();
 });
 
@@ -457,7 +484,22 @@ window.addEventListener("resize", drawRoi);
   $(id).addEventListener("change", () => {
     if (id === "afterEnabled" || id === "groupEnabled") $("analyticsEnabled").checked = true;
     $("analysisStateText").textContent = $("analyticsEnabled").checked ? "Detecção de pessoas ativa" : "Detecção pausada";
+    markConfigDirty();
   });
+});
+
+[
+  "analysisFps",
+  "confidenceThreshold",
+  "minBoxArea",
+  "afterStart",
+  "afterEnd",
+  "afterHits",
+  "groupPeople",
+  "groupDwell",
+].forEach((id) => {
+  $(id).addEventListener("input", markConfigDirty);
+  $(id).addEventListener("change", markConfigDirty);
 });
 
 refreshSystem()

@@ -132,6 +132,18 @@ O arquivo `.pt` nao deve ser versionado.
 
 Na primeira execucao com `yolov8n.pt`, o Ultralytics pode baixar o modelo publico automaticamente. Para demonstracoes sem internet, coloque o arquivo do modelo localmente e aponte `VMS_YOLO_MODEL=/caminho/modelo.pt`.
 
+## Banco de dados
+
+O MVP atual persiste dados em `data/store.json` para acelerar desenvolvimento local. Isso e suficiente para testes de bancada, mas nao e o ideal para uma demo autenticada com varios clientes.
+
+Recomendacao para demo real:
+
+- Usar PostgreSQL local via Docker Compose.
+- Manter usuarios, cameras, configuracoes, trial, eventos e snapshots indexados por `user_id`.
+- Deixar snapshots no volume `data/events/` ou storage equivalente, salvando no banco apenas metadados e caminho do arquivo.
+
+SQLite tambem funcionaria para uma demo local simples, mas PostgreSQL deixa o sistema mais proximo de um produto SaaS multiusuario.
+
 ## Variaveis uteis
 
 ```text

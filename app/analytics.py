@@ -9,7 +9,7 @@ from pathlib import Path
 import cv2
 
 from app.detectors import PeopleDetector
-from app.geometry import bbox_inside_roi, draw_polygon, relative_polygon_to_pixels
+from app.geometry import bbox_inside_roi, relative_polygon_to_pixels
 from app.mailer import EvidenceMailer
 from app.runtime import RuntimeManager
 from app.schemas import Camera, Detection, Event
@@ -285,14 +285,12 @@ class AnalysisManager:
 def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], roi_count: int) -> None:
     height, width = frame.shape[:2]
     roi = relative_polygon_to_pixels(camera.analytics.roi, width, height)
-    if camera.analytics.enabled:
-        draw_polygon(frame, roi, (20, 184, 166))
     for detection in detections:
         x1, y1, x2, y2 = detection.bbox
         inside = bbox_inside_roi(detection.bbox, roi)
-        color = (28, 126, 255) if inside else (148, 163, 184)
+        color = (255, 110, 48) if inside else (148, 163, 184)
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        label = f"ROI {detection.confidence:.2f}" if inside else f"fora {detection.confidence:.2f}"
+        label = f"pessoa {detection.confidence:.2f}" if inside else f"fora ROI {detection.confidence:.2f}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(frame, (x1, max(0, y1 - th - 10)), (x1 + tw + 8, y1), color, -1)
         cv2.putText(
@@ -306,8 +304,8 @@ def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], r
             cv2.LINE_AA,
         )
     lines = [
-        f"ROI: {roi_count} pessoa(s)",
-        f"Analise: {'ON' if camera.analytics.enabled else 'OFF'}",
+        f"{roi_count} pessoa(s) na area",
+        f"Analise {'ativa' if camera.analytics.enabled else 'pausada'}",
     ]
     y = 28
     for line in lines:

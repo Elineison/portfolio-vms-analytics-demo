@@ -172,6 +172,8 @@ VMS_SMTP_TLS=1
 
 No Gmail, use uma senha de app da conta remetente. Nao use a senha normal da conta Google.
 
+Recomendacao para demo: use um e-mail remetente exclusivo do sistema, por exemplo `avm.demo@suaempresa.com` ou uma conta Google Workspace/Gmail criada so para o AVM. O cliente continua autenticando com o Google dele; o sistema apenas usa esse remetente SMTP para enviar alertas ao e-mail autenticado do cliente.
+
 Sem SMTP configurado, a mensagem fica salva como `.eml` em:
 
 ```text

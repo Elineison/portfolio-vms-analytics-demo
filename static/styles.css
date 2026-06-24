@@ -1,14 +1,22 @@
 :root {
   color-scheme: light;
-  --bg: #eef2f5;
+  --bg: #e9edf5;
+  --shell: #101827;
+  --shell-soft: #162033;
   --panel: #ffffff;
-  --ink: #17202a;
-  --muted: #64748b;
-  --line: #d7dee8;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --alert: #c2410c;
-  --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  --panel-soft: #f6f8fc;
+  --ink: #172033;
+  --ink-strong: #0d1320;
+  --muted: #6b7890;
+  --line: #d8dfeb;
+  --line-strong: #c8d1e1;
+  --accent: #3347d4;
+  --accent-strong: #2636ad;
+  --accent-soft: #eef1ff;
+  --purple: #6852d6;
+  --alert: #b42318;
+  --shadow: 0 18px 44px rgba(20, 31, 54, 0.12);
+  --shadow-soft: 0 10px 24px rgba(20, 31, 54, 0.08);
 }
 
 * {
@@ -19,7 +27,9 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background: var(--bg);
+  background:
+    linear-gradient(180deg, rgba(16, 24, 39, 0.04), rgba(16, 24, 39, 0)),
+    var(--bg);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -35,19 +45,20 @@ body {
   place-items: center;
   padding: 24px;
   background:
-    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08)),
-    #eef2f5;
+    linear-gradient(135deg, rgba(16, 24, 39, 0.94), rgba(35, 45, 84, 0.92)),
+    #101827;
 }
 
 .auth-panel {
   display: grid;
   gap: 22px;
   width: min(480px, 100%);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   padding: 30px;
-  background: #fff;
-  box-shadow: var(--shadow);
+  color: #eef2ff;
+  background: #151f32;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
 }
 
 .auth-brand {
@@ -69,7 +80,7 @@ body {
 .auth-panel span,
 .auth-copy span,
 .auth-hint {
-  color: var(--muted);
+  color: #aeb9ce;
 }
 
 .auth-copy {
@@ -90,14 +101,15 @@ body {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 12px 14px;
-  color: var(--ink);
+  color: #101827;
   background: #fff;
   font-weight: 750;
   text-decoration: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
 }
 
 .login-button:hover {
-  background: #f8fafc;
+  background: #f4f7ff;
 }
 
 .login-button span {
@@ -107,7 +119,7 @@ body {
   height: 22px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  color: #1f2937;
+  color: #1f2a44;
   font-weight: 800;
 }
 
@@ -130,10 +142,12 @@ input {
 button {
   border: 0;
   border-radius: 6px;
-  padding: 10px 14px;
+  padding: 10px 15px;
   color: #fff;
   background: var(--accent);
   cursor: pointer;
+  font-weight: 750;
+  box-shadow: 0 8px 18px rgba(51, 71, 212, 0.2);
 }
 
 button:hover {
@@ -141,17 +155,18 @@ button:hover {
 }
 
 button.ghost {
-  color: var(--ink);
-  background: #e8edf3;
+  color: #25304a;
+  background: #edf1f8;
+  box-shadow: none;
 }
 
 button.ghost:hover {
-  background: #dce4ed;
+  background: #e1e7f2;
 }
 
 .app-shell {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 352px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -160,21 +175,23 @@ button.ghost:hover {
   flex-direction: column;
   gap: 16px;
   padding: 22px;
-  border-right: 1px solid var(--line);
-  background: #f8fafc;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--shell);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  color: #f8fbff;
 }
 
 .brand-mark {
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0f766e, #2563eb);
+  background: linear-gradient(135deg, #3347d4, #6852d6);
+  box-shadow: 0 10px 22px rgba(104, 82, 214, 0.26);
 }
 
 .brand h1,
@@ -196,12 +213,38 @@ button.ghost:hover {
   font-size: 13px;
 }
 
+.brand p {
+  color: #96a3ba;
+}
+
 .panel,
 .config-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-soft);
+}
+
+.sidebar .panel {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #dbe4f7;
+  background: var(--shell-soft);
+  box-shadow: none;
+}
+
+.sidebar label,
+.sidebar .section-title h2 {
+  color: #e8eefc;
+}
+
+.sidebar input {
+  border-color: rgba(255, 255, 255, 0.11);
+  color: #eef2ff;
+  background: #111a2b;
+}
+
+.sidebar input::placeholder {
+  color: #758198;
 }
 
 .config-head {
@@ -225,7 +268,7 @@ label {
   display: grid;
   gap: 7px;
   margin-bottom: 12px;
-  color: #334155;
+  color: #34415a;
   font-size: 13px;
   font-weight: 650;
 }
@@ -236,7 +279,12 @@ input {
   border-radius: 6px;
   padding: 10px 11px;
   color: var(--ink);
-  background: #fff;
+  background: #fbfcff;
+}
+
+input:focus {
+  outline: 2px solid rgba(51, 71, 212, 0.18);
+  border-color: #9aa7f2;
 }
 
 .section-title {
@@ -266,6 +314,16 @@ input {
   background: #fff;
 }
 
+.sidebar .camera-item,
+.sidebar .event-item {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #111a2b;
+}
+
+.sidebar .camera-item:hover {
+  background: #1a2540;
+}
+
 .camera-item {
   display: grid;
   gap: 8px;
@@ -288,6 +346,10 @@ input {
   white-space: nowrap;
 }
 
+.sidebar .camera-item span {
+  color: #93a0b8;
+}
+
 .workspace {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -301,7 +363,8 @@ input {
   gap: 16px;
   padding: 18px 22px;
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
 }
 
 .topbar h2 {
@@ -330,6 +393,7 @@ input {
   gap: 18px;
   min-height: 0;
   padding: 18px;
+  background: var(--bg);
 }
 
 .viewer {
@@ -338,7 +402,8 @@ input {
   overflow: hidden;
   border: 1px solid #111827;
   border-radius: 8px;
-  background: #0b1016;
+  background: #070b13;
+  box-shadow: var(--shadow);
 }
 
 #previewImage,
@@ -378,7 +443,7 @@ input {
   border-radius: 6px;
   padding: 8px 10px;
   color: #e2e8f0;
-  background: rgba(15, 23, 42, 0.78);
+  background: rgba(14, 21, 35, 0.84);
   font-size: 13px;
   font-weight: 700;
 }
@@ -422,6 +487,7 @@ fieldset {
   border-radius: 8px;
   margin: 0;
   padding: 14px;
+  background: #fbfcff;
 }
 
 legend {
@@ -454,7 +520,7 @@ legend {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 10px;
-  background: #f8fafc;
+  background: var(--accent-soft);
 }
 
 .runtime-panel span,

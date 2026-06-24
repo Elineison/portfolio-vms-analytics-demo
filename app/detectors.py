@@ -16,6 +16,7 @@ logger = logging.getLogger("portfolio_vms.detectors")
 class DetectorStats:
     backend: str
     available: bool
+    device: str = "cpu"
     last_error: str | None = None
 
 
@@ -23,6 +24,7 @@ class PeopleDetector:
     def __init__(self) -> None:
         self.model_name = os.getenv("VMS_YOLO_MODEL", "yolov8n.pt")
         self.confidence = float(os.getenv("VMS_YOLO_CONF", "0.35"))
+        self.device = os.getenv("VMS_YOLO_DEVICE", "auto")
         self._model = None
         self.stats = DetectorStats(backend="none", available=False)
         self._load_yolo()
@@ -30,15 +32,19 @@ class PeopleDetector:
     def _load_yolo(self) -> None:
         try:
             from ultralytics import YOLO
+            import torch
 
+            if self.device == "auto":
+                self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
             self._model = YOLO(self.model_name)
-            self.stats = DetectorStats(backend="ultralytics", available=True)
-            logger.info("people_detector_yolo_loaded model=%s", self.model_name)
+            self.stats = DetectorStats(backend="ultralytics", available=True, device=self.device)
+            logger.info("people_detector_yolo_loaded model=%s device=%s", self.model_name, self.device)
         except Exception as exc:
             self._model = None
             self.stats = DetectorStats(
                 backend="ultralytics",
                 available=False,
+                device=self.device if self.device != "auto" else "cpu",
                 last_error=f"{type(exc).__name__}: {exc}",
             )
             logger.warning("people_detector_yolo_unavailable %s", self.stats.last_error)
@@ -62,6 +68,7 @@ class PeopleDetector:
             conf=float(confidence or self.confidence),
             classes=[0],
             max_det=50,
+            device=self.device,
         )
         detections: list[Detection] = []
         for result in results:

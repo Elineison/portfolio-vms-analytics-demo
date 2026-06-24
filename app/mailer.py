@@ -21,7 +21,7 @@ class EvidenceMailer:
 
     def send_event(self, event: Event, recipient: str, snapshot_path: Path | None) -> str:
         msg = EmailMessage()
-        msg["Subject"] = f"[VMS Demo] {event.title}"
+        msg["Subject"] = f"[AVM Demo] {event.title}"
         msg["From"] = self.sender
         msg["To"] = recipient
         msg.set_content(

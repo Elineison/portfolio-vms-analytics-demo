@@ -32,8 +32,10 @@ class RuleTests(unittest.TestCase):
     def test_store_revalidates_nested_analytics_patch(self):
         with TemporaryDirectory() as temp_dir:
             store = JsonStore(Path(temp_dir))
-            camera = store.create_camera(CameraCreate(name="Demo", rtsp_url="rtsp://example/stream"))
+            user = store.upsert_google_user("demo@example.com", name="Demo")
+            camera = store.create_camera(user.id, CameraCreate(name="Demo", rtsp_url="rtsp://example/stream"))
             patched = store.patch_camera(
+                user.id,
                 camera.id,
                 CameraPatch(
                     analytics=AnalyticsConfig(
@@ -50,7 +52,15 @@ class RuleTests(unittest.TestCase):
             self.assertTrue(patched.analytics.enabled)
             self.assertEqual(len(patched.analytics.roi), 3)
 
+    def test_store_can_reset_trial_by_email(self):
+        with TemporaryDirectory() as temp_dir:
+            store = JsonStore(Path(temp_dir))
+            user = store.upsert_google_user("demo@example.com", name="Demo")
+            reset = store.reset_user_trial_by_email(user.email, days=7)
+            self.assertIsNotNone(reset)
+            self.assertEqual(reset.email, user.email)
+            self.assertEqual(reset.trial_extension_days, 7)
+
 
 if __name__ == "__main__":
     unittest.main()
-

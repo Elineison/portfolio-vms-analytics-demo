@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time
+from datetime import datetime, timezone, time
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -62,6 +62,7 @@ class CameraPatch(BaseModel):
 
 class Camera(CameraCreate):
     id: str
+    user_id: str
     analytics: AnalyticsConfig = Field(default_factory=AnalyticsConfig)
 
 
@@ -85,6 +86,7 @@ class RuntimeStatus(BaseModel):
 
 class Event(BaseModel):
     id: str
+    user_id: str
     camera_id: str
     camera_name: str
     type: Literal["after_hours_intrusion", "group_loitering"]
@@ -97,3 +99,23 @@ class Event(BaseModel):
     snapshot_url: str | None = None
     notification_email: str | None = None
     notification_status: str | None = None
+
+
+class User(BaseModel):
+    id: str
+    email: str
+    name: str | None = None
+    picture: str | None = None
+    provider: str = "google"
+    created_at: str
+    last_login_at: str
+    trial_started_at: str
+    trial_expires_at: str
+    trial_extension_days: int = 0
+
+    def trial_active(self, now: datetime | None = None) -> bool:
+        current = now or datetime.now(timezone.utc)
+        expires = datetime.fromisoformat(self.trial_expires_at)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return current <= expires

@@ -114,9 +114,11 @@ class CameraAnalysisTask:
     def _emit_event(self, event_type: str, title: str, message: str, people_count: int, frame) -> None:
         event_id = str(uuid.uuid4())
         snapshot_file = self._save_snapshot(event_id, frame)
-        recipient = (self.camera.analytics.notification_email or "").strip() or None
+        owner = self.store.get_user(self.camera.user_id)
+        recipient = owner.email if owner else None
         event = Event(
             id=event_id,
+            user_id=self.camera.user_id,
             camera_id=self.camera.id,
             camera_name=self.camera.name,
             type=event_type,
@@ -283,7 +285,8 @@ class AnalysisManager:
 def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], roi_count: int) -> None:
     height, width = frame.shape[:2]
     roi = relative_polygon_to_pixels(camera.analytics.roi, width, height)
-    draw_polygon(frame, roi, (20, 184, 166))
+    if camera.analytics.enabled:
+        draw_polygon(frame, roi, (20, 184, 166))
     for detection in detections:
         x1, y1, x2, y2 = detection.bbox
         inside = bbox_inside_roi(detection.bbox, roi)

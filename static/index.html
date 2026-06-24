@@ -3,17 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Portfolio VMS Analytics</title>
+  <title>AVM - Analise de Video para Monitoramento</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main class="app-shell">
+  <section id="authScreen" class="auth-screen hidden">
+    <div class="auth-panel">
+      <span class="brand-mark"></span>
+      <h1>AVM</h1>
+      <p>Analise de Video para Monitoramento</p>
+      <a id="googleLogin" class="login-button" href="/auth/google">Entrar com Google</a>
+      <span id="authHint"></span>
+    </div>
+  </section>
+
+  <main class="app-shell hidden">
     <aside class="sidebar">
       <div class="brand">
         <span class="brand-mark"></span>
         <div>
-          <h1>VMS Analytics</h1>
-          <p>RTSP demo</p>
+          <h1>AVM</h1>
+          <p>Analise de Video para Monitoramento</p>
         </div>
       </div>
 
@@ -45,8 +55,10 @@
           <h2 id="activeCameraTitle">Nenhuma camera selecionada</h2>
         </div>
         <div class="toolbar">
+          <div id="userChip" class="user-chip"></div>
           <button id="saveConfig" type="button">Salvar regras</button>
           <button id="stopPreview" class="ghost" type="button">Parar preview</button>
+          <button id="logoutButton" class="ghost" type="button">Sair</button>
         </div>
       </header>
 
@@ -56,7 +68,7 @@
           <canvas id="roiCanvas"></canvas>
           <div id="emptyState" class="empty-state">
             <strong>Informe uma URL RTSP para iniciar.</strong>
-            <span>O preview usa WebSocket JPEG e a ROI e salva em coordenadas relativas.</span>
+            <span>Desenhe a ROI e ative as analises da demo.</span>
           </div>
           <div id="runtimeBadge" class="runtime-badge">Sem camera</div>
         </div>
@@ -81,7 +93,6 @@
             <label>FPS analise<input id="analysisFps" type="number" min="0.2" max="10" step="0.2" value="2"></label>
             <label>Confianca YOLO<input id="confidenceThreshold" type="range" min="0.05" max="0.95" step="0.05" value="0.35"></label>
             <label>Area minima<input id="minBoxArea" type="range" min="0.0005" max="0.05" step="0.0005" value="0.005"></label>
-            <label>E-mail da demo<input id="notificationEmail" type="email" placeholder="cliente@empresa.com"></label>
           </fieldset>
 
           <fieldset>

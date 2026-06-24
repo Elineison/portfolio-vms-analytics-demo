@@ -1,4 +1,4 @@
-# Portfolio VMS Analytics MVP
+# AVM - Analise de Video para Monitoramento
 
 MVP autoral para demonstrar analise de video CFTV por RTSP.
 
@@ -54,6 +54,12 @@ Suba o MVP:
 docker compose up -d --build
 ```
 
+Com GPU NVIDIA:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
 Acesse:
 
 ```text
@@ -67,6 +73,33 @@ http://IP_DO_SERVIDOR:8088
 ```
 
 Veja mais em [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Login, LGPD e Trial
+
+O MVP usa login Google via OpenID Connect/OAuth. Configure:
+
+```text
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+VMS_SESSION_SECRET=valor-longo-aleatorio
+VMS_ADMIN_TOKEN=valor-longo-aleatorio
+```
+
+Use `.env.example` como base, sem versionar o `.env` real.
+
+Cada e-mail autenticado tem cameras, configuracoes, eventos e snapshots separados. O trial padrao e de 7 dias por e-mail.
+
+Resetar trial:
+
+```bash
+python -m app.admin_cli --data-dir ./data reset-trial cliente@gmail.com --days 7
+```
+
+Apagar usuario e permitir novo cadastro limpo:
+
+```bash
+python -m app.admin_cli --data-dir ./data delete-user cliente@gmail.com
+```
 
 ## Detector
 
@@ -90,6 +123,10 @@ VMS_DATA_DIR=./data
 VMS_SESSION_TIMEOUT_S=300
 VMS_YOLO_MODEL=yolov8n.pt
 VMS_ANALYSIS_FPS=2
+VMS_YOLO_DEVICE=auto
+VMS_SESSION_SECRET=troque-este-valor
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
 ```
 
 ## Evidencias e e-mail
@@ -100,7 +137,7 @@ Quando uma regra dispara, o backend salva um snapshot com overlay em:
 data/events/
 ```
 
-Se a camera tiver um e-mail cadastrado, o sistema tenta enviar a evidencia usando SMTP. Configure:
+Se SMTP estiver configurado, o sistema envia a evidencia para o e-mail autenticado pelo Google. Configure:
 
 ```text
 VMS_SMTP_HOST=smtp.exemplo.com

@@ -1,2 +1,1 @@
-"""Portfolio VMS Analytics MVP."""
-
+"""AVM - Analise de Video para Monitoramento."""

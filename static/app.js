@@ -8,6 +8,8 @@ const defaultRoi = [
 ];
 
 let state = {
+  me: null,
+  system: null,
   cameras: [],
   activeCamera: null,
   ws: null,
@@ -24,10 +26,26 @@ async function api(path, options = {}) {
     ...options,
   });
   if (!response.ok) {
+    if (response.status === 401) showAuth();
     const text = await response.text();
     throw new Error(text || response.statusText);
   }
   return response.json();
+}
+
+function showAuth() {
+  $("authScreen").classList.remove("hidden");
+  document.querySelector(".app-shell").classList.add("hidden");
+  state.me = null;
+  if (state.system && !state.system.auth.google_configured) {
+    $("googleLogin").classList.add("hidden");
+    $("authHint").textContent = "Login Google ainda nao configurado neste ambiente.";
+  }
+}
+
+function showApp() {
+  $("authScreen").classList.add("hidden");
+  document.querySelector(".app-shell").classList.remove("hidden");
 }
 
 function activeAnalytics() {
@@ -36,7 +54,6 @@ function activeAnalytics() {
     analysis_fps: Number($("analysisFps").value || 2),
     confidence_threshold: Number($("confidenceThreshold").value || 0.35),
     min_box_area_ratio: Number($("minBoxArea").value || 0.005),
-    notification_email: $("notificationEmail").value.trim() || null,
     roi: state.roi,
     after_hours: {
       enabled: $("afterEnabled").checked,
@@ -63,7 +80,6 @@ function loadAnalytics(camera) {
   $("analysisFps").value = analytics.analysis_fps || 2;
   $("confidenceThreshold").value = analytics.confidence_threshold || 0.35;
   $("minBoxArea").value = analytics.min_box_area_ratio || 0.005;
-  $("notificationEmail").value = analytics.notification_email || "";
   $("afterEnabled").checked = Boolean(after.enabled);
   $("afterStart").value = (after.start || "18:00").slice(0, 5);
   $("afterEnd").value = (after.end || "06:00").slice(0, 5);
@@ -110,8 +126,24 @@ function renderEvents(events) {
 
 async function refreshSystem() {
   const info = await api("/api/system");
+  state.system = info;
   const detector = info.detector.available ? info.detector.backend : "sem YOLO";
-  $("systemStatus").textContent = `${info.stream_standard} | detector: ${detector}`;
+  const device = info.detector.device || "cpu";
+  $("systemStatus").textContent = `${info.stream_standard} | ${detector} ${device}`;
+}
+
+async function refreshMe() {
+  try {
+    state.me = await api("/api/me");
+    showApp();
+    $("userChip").textContent = `${state.me.email} | ${state.me.trial_days_remaining} dia(s)`;
+    if (!state.me.trial_active) {
+      $("systemStatus").textContent = "Periodo de demo expirado";
+    }
+  } catch (error) {
+    showAuth();
+    throw error;
+  }
 }
 
 async function refreshCameras() {
@@ -120,11 +152,13 @@ async function refreshCameras() {
 }
 
 async function refreshEvents() {
+  if (!state.me) return;
   const qs = state.activeCamera ? `?camera_id=${encodeURIComponent(state.activeCamera.id)}` : "";
   renderEvents(await api(`/api/events${qs}`));
 }
 
 async function refreshRuntimeStatus() {
+  if (!state.me) return;
   if (!state.activeCamera) {
     $("runtimeBadge").textContent = "Sem camera";
     return;
@@ -316,6 +350,10 @@ $("cameraForm").addEventListener("submit", async (event) => {
 
 $("saveConfig").onclick = saveConfig;
 $("stopPreview").onclick = closePreview;
+$("logoutButton").onclick = async () => {
+  await api("/auth/logout", { method: "POST" }).catch(() => null);
+  location.reload();
+};
 $("refreshCameras").onclick = refreshCameras;
 $("refreshEvents").onclick = refreshEvents;
 $("drawRoi").onclick = () => {
@@ -367,8 +405,10 @@ window.addEventListener("pointerup", () => {
 });
 window.addEventListener("resize", drawRoi);
 
-refreshSystem().catch(console.error);
-refreshCameras().catch(console.error);
-refreshEvents().catch(console.error);
+refreshSystem()
+  .then(refreshMe)
+  .then(refreshCameras)
+  .then(refreshEvents)
+  .catch(console.error);
 state.statusTimer = window.setInterval(() => refreshRuntimeStatus().catch(console.error), 2000);
 state.eventsTimer = window.setInterval(() => refreshEvents().catch(console.error), 5000);

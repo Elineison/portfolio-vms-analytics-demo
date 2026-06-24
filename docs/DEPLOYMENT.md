@@ -73,6 +73,12 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 docker compose up -d --build
 ```
 
+Com GPU NVIDIA:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
 Abrir localmente:
 
 ```text
@@ -146,4 +152,80 @@ Se SMTP nao estiver configurado, o sistema salva o e-mail gerado em:
 
 ```text
 ./data/outbox/
+```
+
+## Login Google
+
+Criar credenciais OAuth 2.0 no Google Cloud como aplicacao Web.
+
+Redirect URI local:
+
+```text
+http://127.0.0.1:8088/auth/google/callback
+```
+
+Redirect URI em rede/cliente:
+
+```text
+http://IP_DO_SERVIDOR:8088/auth/google/callback
+```
+
+Variaveis:
+
+```text
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+VMS_SESSION_SECRET=valor-longo-aleatorio
+VMS_ADMIN_TOKEN=valor-longo-aleatorio
+```
+
+O sistema usa o e-mail autenticado para envio de alertas da demo. Nao ha campo manual de e-mail por camera.
+
+## LGPD e Separacao por Usuario
+
+Cada usuario autenticado tem:
+
+- Cameras proprias.
+- Configuracoes proprias.
+- Eventos proprios.
+- Snapshots proprios.
+- Trial proprio de 7 dias.
+
+O backend filtra cameras, eventos e snapshots por `user_id`. Um usuario nao deve conseguir acessar dados de outro usuario.
+
+Dados armazenados no MVP:
+
+- E-mail e nome do Google.
+- URL RTSP informada pelo usuario.
+- Configuracoes de ROI e analise.
+- Snapshots de ocorrencias geradas durante a demo.
+
+Para demonstracao comercial, informe ao cliente que a URL RTSP e snapshots sao usados somente para executar a demo e podem ser apagados sob solicitacao.
+
+## Resetar Trial ou Apagar Usuario
+
+Resetar mais 7 dias pelo codigo:
+
+```bash
+python -m app.admin_cli --data-dir ./data reset-trial cliente@gmail.com --days 7
+```
+
+Apagar usuario, cameras, configuracoes e eventos:
+
+```bash
+python -m app.admin_cli --data-dir ./data delete-user cliente@gmail.com
+```
+
+Via API administrativa:
+
+```bash
+curl -X POST \
+  -H "X-Admin-Token: $VMS_ADMIN_TOKEN" \
+  "http://127.0.0.1:8088/api/admin/users/cliente@gmail.com/reset-trial?days=7"
+```
+
+```bash
+curl -X DELETE \
+  -H "X-Admin-Token: $VMS_ADMIN_TOKEN" \
+  "http://127.0.0.1:8088/api/admin/users/cliente@gmail.com"
 ```

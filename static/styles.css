@@ -34,34 +34,59 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #eef2f5;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(37, 99, 235, 0.08)),
+    #eef2f5;
 }
 
 .auth-panel {
-  width: min(420px, 100%);
+  display: grid;
+  gap: 22px;
+  width: min(480px, 100%);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 28px;
+  padding: 30px;
   background: #fff;
   box-shadow: var(--shadow);
 }
 
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .auth-panel h1 {
-  margin: 16px 0 8px;
+  margin: 0;
   font-size: 28px;
 }
 
+.auth-panel p {
+  margin: 4px 0 0;
+}
+
 .auth-panel p,
-.auth-panel span {
+.auth-panel span,
+.auth-copy span,
+.auth-hint {
   color: var(--muted);
+}
+
+.auth-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.auth-copy strong {
+  font-size: 17px;
 }
 
 .login-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   width: 100%;
-  margin-top: 22px;
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 12px 14px;
@@ -73,6 +98,28 @@ body {
 
 .login-button:hover {
   background: #f8fafc;
+}
+
+.login-button span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: #1f2937;
+  font-weight: 800;
+}
+
+.login-button.disabled {
+  color: var(--muted);
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.auth-hint {
+  min-height: 18px;
+  font-size: 12px;
 }
 
 button,
@@ -155,6 +202,19 @@ button.ghost:hover {
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+.config-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.config-head span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .panel {
@@ -434,7 +494,18 @@ legend {
     flex-direction: column;
   }
 
-  .toolbar,
+  .toolbar {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .toolbar button,
+  .user-chip {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
   .roi-tools,
   .two-cols {
     grid-template-columns: 1fr;

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import RLock
 
-from app.schemas import Camera, CameraCreate, CameraPatch, Event, User
+from app.schemas import AnalyticsConfig, Camera, CameraCreate, CameraPatch, Event, User
 
 
 class JsonStore:
@@ -127,7 +127,12 @@ class JsonStore:
 
     def create_camera(self, user_id: str, data: CameraCreate) -> Camera:
         with self._lock:
-            camera = Camera(id=str(uuid.uuid4()), user_id=user_id, **data.model_dump())
+            camera = Camera(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                analytics=AnalyticsConfig(enabled=True),
+                **data.model_dump(),
+            )
             self._cameras[camera.id] = camera
             self._save()
             return camera

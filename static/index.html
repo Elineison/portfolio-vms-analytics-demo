@@ -4,16 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AVM - Analise de Video para Monitoramento</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=20260624-3">
 </head>
 <body>
   <section id="authScreen" class="auth-screen hidden">
     <div class="auth-panel">
-      <span class="brand-mark"></span>
-      <h1>AVM</h1>
-      <p>Analise de Video para Monitoramento</p>
-      <a id="googleLogin" class="login-button" href="/auth/google">Entrar com Google</a>
-      <span id="authHint"></span>
+      <div class="auth-brand">
+        <span class="brand-mark"></span>
+        <div>
+          <h1>AVM</h1>
+          <p>Analise de Video para Monitoramento</p>
+        </div>
+      </div>
+      <div class="auth-copy">
+        <strong>Demo autenticada</strong>
+        <span>Acesse com sua conta Google para testar cameras, regras, eventos e snapshots no seu perfil.</span>
+      </div>
+      <a id="googleLogin" class="login-button" href="/auth/google"><span>G</span> Entrar ou cadastrar com Google</a>
+      <span id="authHint" class="auth-hint"></span>
     </div>
   </section>
 
@@ -56,7 +64,7 @@
         </div>
         <div class="toolbar">
           <div id="userChip" class="user-chip"></div>
-          <button id="saveConfig" type="button">Salvar regras</button>
+          <button id="saveConfig" type="button">Aplicar análise</button>
           <button id="stopPreview" class="ghost" type="button">Parar preview</button>
           <button id="logoutButton" class="ghost" type="button">Sair</button>
         </div>
@@ -74,7 +82,12 @@
         </div>
 
         <aside class="config-panel">
-          <h2>Analises</h2>
+          <div class="config-head">
+            <div>
+              <h2>Análise</h2>
+              <span id="analysisStateText">Aguardando câmera</span>
+            </div>
+          </div>
 
           <label class="switch-row">
             <span>Ativar analytics</span>
@@ -82,10 +95,11 @@
           </label>
 
           <div class="roi-tools">
-            <button id="drawRoi" class="ghost" type="button">Desenhar ROI</button>
-            <button id="finishRoi" class="ghost" type="button">Fechar ROI</button>
-            <button id="resetRoi" class="ghost" type="button">ROI padrao</button>
-            <button id="useFullFrame" class="ghost" type="button">Tela inteira</button>
+            <button id="editRoi" class="ghost" type="button">Editar ROI</button>
+            <button id="drawRoi" class="ghost hidden" type="button">Nova ROI</button>
+            <button id="finishRoi" class="ghost hidden" type="button">Concluir</button>
+            <button id="resetRoi" class="ghost hidden" type="button">Padrão</button>
+            <button id="useFullFrame" class="ghost hidden" type="button">Tela inteira</button>
           </div>
 
           <fieldset>
@@ -146,6 +160,6 @@
       </section>
     </section>
   </main>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=20260624-3"></script>
 </body>
 </html>

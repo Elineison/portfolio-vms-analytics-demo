@@ -39,6 +39,12 @@ Acesse:
 http://127.0.0.1:8088
 ```
 
+Para testar a tela de entrada/cadastro Google sem depender do login durante o desenvolvimento:
+
+```text
+http://127.0.0.1:8088/?login=preview
+```
+
 ## Rodando com Docker + CUDA
 
 Pre-requisitos no host:
@@ -88,6 +94,8 @@ VMS_ADMIN_TOKEN=valor-longo-aleatorio
 Use `.env.example` como base, sem versionar o `.env` real.
 
 Cada e-mail autenticado tem cameras, configuracoes, eventos e snapshots separados. O trial padrao e de 7 dias por e-mail.
+
+Em desenvolvimento, `VMS_DEV_AUTH_EMAIL=seu-email@gmail.com` cria uma sessao local para validar preview, ROI e analises. Para testar o fluxo real do usuario, configure `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` e remova o bypass local.
 
 Resetar trial:
 

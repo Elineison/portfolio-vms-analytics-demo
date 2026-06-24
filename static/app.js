@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(window.location.search);
 
 const defaultRoi = [
   { x: 0.15, y: 0.15 },
@@ -15,6 +16,7 @@ let state = {
   ws: null,
   roi: [...defaultRoi],
   dragIndex: null,
+  roiEditorVisible: false,
   drawMode: false,
   statusTimer: null,
   eventsTimer: null,
@@ -33,13 +35,23 @@ async function api(path, options = {}) {
   return response.json();
 }
 
+function normalizeTime(value, fallback) {
+  const raw = String(value || fallback || "00:00").slice(0, 5);
+  return `${raw}:00`;
+}
+
 function showAuth() {
   $("authScreen").classList.remove("hidden");
   document.querySelector(".app-shell").classList.add("hidden");
   state.me = null;
-  if (state.system && !state.system.auth.google_configured) {
-    $("googleLogin").classList.add("hidden");
-    $("authHint").textContent = "Login Google ainda nao configurado neste ambiente.";
+  const configured = Boolean(state.system?.auth?.google_configured);
+  $("googleLogin").classList.toggle("disabled", !configured);
+  if (configured) {
+    $("googleLogin").href = "/auth/google";
+    $("authHint").textContent = "O cadastro e criado automaticamente no primeiro acesso Google.";
+  } else {
+    $("googleLogin").removeAttribute("href");
+    $("authHint").textContent = "OAuth Google pendente neste servidor. Configure as credenciais para ativar o fluxo real.";
   }
 }
 
@@ -49,21 +61,23 @@ function showApp() {
 }
 
 function activeAnalytics() {
+  const afterEnabled = $("afterEnabled").checked;
+  const groupEnabled = $("groupEnabled").checked;
   return {
-    enabled: $("analyticsEnabled").checked,
+    enabled: $("analyticsEnabled").checked || afterEnabled || groupEnabled,
     analysis_fps: Number($("analysisFps").value || 2),
     confidence_threshold: Number($("confidenceThreshold").value || 0.35),
     min_box_area_ratio: Number($("minBoxArea").value || 0.005),
     roi: state.roi,
     after_hours: {
-      enabled: $("afterEnabled").checked,
-      start: $("afterStart").value || "18:00",
-      end: $("afterEnd").value || "06:00",
+      enabled: afterEnabled,
+      start: normalizeTime($("afterStart").value, "18:00"),
+      end: normalizeTime($("afterEnd").value, "06:00"),
       min_consecutive_hits: Number($("afterHits").value || 2),
       cooldown_s: 60,
     },
     group_loitering: {
-      enabled: $("groupEnabled").checked,
+      enabled: groupEnabled,
       min_people: Number($("groupPeople").value || 3),
       dwell_s: Number($("groupDwell").value || 120),
       cooldown_s: 120,
@@ -77,6 +91,7 @@ function loadAnalytics(camera) {
   const group = analytics.group_loitering || {};
   state.roi = analytics.roi?.length >= 3 ? analytics.roi : [...defaultRoi];
   $("analyticsEnabled").checked = Boolean(analytics.enabled);
+  $("analysisStateText").textContent = analytics.enabled ? "Detecção de pessoas ativa" : "Detecção pausada";
   $("analysisFps").value = analytics.analysis_fps || 2;
   $("confidenceThreshold").value = analytics.confidence_threshold || 0.35;
   $("minBoxArea").value = analytics.min_box_area_ratio || 0.005;
@@ -101,7 +116,7 @@ function renderCameras() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "camera-item ghost";
-    button.innerHTML = `<strong>${escapeHtml(camera.name)}</strong><span>${escapeHtml(camera.rtsp_url)}</span>`;
+    button.innerHTML = `<strong>${escapeHtml(camera.name)}</strong><span>${escapeHtml(maskRtsp(camera.rtsp_url))}</span>`;
     button.onclick = () => selectCamera(camera.id);
     list.appendChild(button);
   });
@@ -287,6 +302,7 @@ function drawRoi() {
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, rect.width, rect.height);
+  if (!state.roiEditorVisible) return;
   if (!state.roi.length) return;
   ctx.beginPath();
   state.roi.forEach((point, index) => {
@@ -296,7 +312,7 @@ function drawRoi() {
     else ctx.lineTo(x, y);
   });
   if (!state.drawMode || state.roi.length >= 3) ctx.closePath();
-  ctx.fillStyle = "rgba(20, 184, 166, 0.18)";
+  ctx.fillStyle = "rgba(20, 184, 166, 0.08)";
   ctx.strokeStyle = "#14b8a6";
   ctx.lineWidth = 2;
   if (state.roi.length >= 3) ctx.fill();
@@ -314,14 +330,24 @@ function drawRoi() {
 
 async function saveConfig() {
   if (!state.activeCamera) return;
-  const camera = await api(`/api/cameras/${state.activeCamera.id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ analytics: activeAnalytics() }),
-  });
-  state.activeCamera = camera;
-  await refreshCameras();
-  $("systemStatus").textContent = "Regras salvas";
-  await refreshRuntimeStatus();
+  if (state.roi.length < 3) {
+    $("systemStatus").textContent = "Conclua a ROI com pelo menos 3 pontos";
+    return;
+  }
+  try {
+    const camera = await api(`/api/cameras/${state.activeCamera.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ analytics: activeAnalytics() }),
+    });
+    state.activeCamera = camera;
+    loadAnalytics(camera);
+    await refreshCameras();
+    $("systemStatus").textContent = "Análise aplicada";
+    await refreshRuntimeStatus();
+  } catch (error) {
+    $("systemStatus").textContent = "Erro ao aplicar análise";
+    console.error(error);
+  }
 }
 
 function escapeHtml(value) {
@@ -332,6 +358,15 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;",
   })[char]);
+}
+
+function maskRtsp(value) {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.hostname}${url.port ? `:${url.port}` : ""}${url.pathname || ""}`;
+  } catch {
+    return "rtsp://camera";
+  }
 }
 
 $("cameraForm").addEventListener("submit", async (event) => {
@@ -346,6 +381,7 @@ $("cameraForm").addEventListener("submit", async (event) => {
   $("cameraForm").reset();
   await refreshCameras();
   await selectCamera(camera.id);
+  await saveConfig();
 });
 
 $("saveConfig").onclick = saveConfig;
@@ -354,9 +390,19 @@ $("logoutButton").onclick = async () => {
   await api("/auth/logout", { method: "POST" }).catch(() => null);
   location.reload();
 };
+$("googleLogin").addEventListener("click", (event) => {
+  if ($("googleLogin").classList.contains("disabled")) event.preventDefault();
+});
 $("refreshCameras").onclick = refreshCameras;
 $("refreshEvents").onclick = refreshEvents;
+$("editRoi").onclick = () => {
+  state.roiEditorVisible = !state.roiEditorVisible;
+  ["drawRoi", "finishRoi", "resetRoi", "useFullFrame"].forEach((id) => $(id).classList.toggle("hidden", !state.roiEditorVisible));
+  $("editRoi").textContent = state.roiEditorVisible ? "Ocultar ROI" : "Editar ROI";
+  drawRoi();
+};
 $("drawRoi").onclick = () => {
+  state.roiEditorVisible = true;
   state.drawMode = true;
   state.roi = [];
   state.dragIndex = null;
@@ -369,11 +415,13 @@ $("finishRoi").onclick = () => {
   }
 };
 $("resetRoi").onclick = () => {
+  state.roiEditorVisible = true;
   state.drawMode = false;
   state.roi = [...defaultRoi];
   drawRoi();
 };
 $("useFullFrame").onclick = () => {
+  state.roiEditorVisible = true;
   state.drawMode = false;
   state.roi = [
     { x: 0.02, y: 0.02 },
@@ -385,7 +433,7 @@ $("useFullFrame").onclick = () => {
 };
 
 $("roiCanvas").addEventListener("pointerdown", (event) => {
-  if (!state.activeCamera) return;
+  if (!state.activeCamera || !state.roiEditorVisible) return;
   if (state.drawMode) {
     state.roi.push(canvasPoint(event));
     drawRoi();
@@ -395,7 +443,7 @@ $("roiCanvas").addEventListener("pointerdown", (event) => {
 });
 
 $("roiCanvas").addEventListener("pointermove", (event) => {
-  if (state.dragIndex === null) return;
+  if (!state.roiEditorVisible || state.dragIndex === null) return;
   state.roi[state.dragIndex] = canvasPoint(event);
   drawRoi();
 });
@@ -405,10 +453,25 @@ window.addEventListener("pointerup", () => {
 });
 window.addEventListener("resize", drawRoi);
 
+["analyticsEnabled", "afterEnabled", "groupEnabled"].forEach((id) => {
+  $(id).addEventListener("change", () => {
+    if (id === "afterEnabled" || id === "groupEnabled") $("analyticsEnabled").checked = true;
+    $("analysisStateText").textContent = $("analyticsEnabled").checked ? "Detecção de pessoas ativa" : "Detecção pausada";
+  });
+});
+
 refreshSystem()
-  .then(refreshMe)
+  .then(() => {
+    if (params.get("login") === "preview") {
+      showAuth();
+      return Promise.reject(new Error("login_preview"));
+    }
+    return refreshMe();
+  })
   .then(refreshCameras)
   .then(refreshEvents)
-  .catch(console.error);
+  .catch((error) => {
+    if (error.message !== "login_preview") console.error(error);
+  });
 state.statusTimer = window.setInterval(() => refreshRuntimeStatus().catch(console.error), 2000);
 state.eventsTimer = window.setInterval(() => refreshEvents().catch(console.error), 5000);

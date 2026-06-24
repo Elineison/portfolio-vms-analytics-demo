@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portfolio VMS Analytics</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <div>
+          <h1>VMS Analytics</h1>
+          <p>RTSP demo</p>
+        </div>
+      </div>
+
+      <form id="cameraForm" class="panel">
+        <label>
+          Nome da camera
+          <input id="cameraName" required maxlength="80" placeholder="Recepcao, garagem, patio">
+        </label>
+        <label>
+          URL RTSP
+          <input id="rtspUrl" required placeholder="rtsp://usuario:senha@ip:554/stream1">
+        </label>
+        <button type="submit">Abrir preview</button>
+      </form>
+
+      <section class="panel">
+        <div class="section-title">
+          <h2>Cameras</h2>
+          <button id="refreshCameras" class="ghost" type="button">Atualizar</button>
+        </div>
+        <div id="cameraList" class="camera-list"></div>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p id="systemStatus">Inicializando</p>
+          <h2 id="activeCameraTitle">Nenhuma camera selecionada</h2>
+        </div>
+        <div class="toolbar">
+          <button id="saveConfig" type="button">Salvar regras</button>
+          <button id="stopPreview" class="ghost" type="button">Parar preview</button>
+        </div>
+      </header>
+
+      <section class="viewer-grid">
+        <div class="viewer">
+          <img id="previewImage" alt="Preview RTSP via WebSocket">
+          <canvas id="roiCanvas"></canvas>
+          <div id="emptyState" class="empty-state">
+            <strong>Informe uma URL RTSP para iniciar.</strong>
+            <span>O preview usa WebSocket JPEG e a ROI e salva em coordenadas relativas.</span>
+          </div>
+          <div id="runtimeBadge" class="runtime-badge">Sem camera</div>
+        </div>
+
+        <aside class="config-panel">
+          <h2>Analises</h2>
+
+          <label class="switch-row">
+            <span>Ativar analytics</span>
+            <input id="analyticsEnabled" type="checkbox">
+          </label>
+
+          <div class="roi-tools">
+            <button id="resetRoi" class="ghost" type="button">ROI padrao</button>
+            <button id="useFullFrame" class="ghost" type="button">Tela inteira</button>
+          </div>
+
+          <fieldset>
+            <legend>Intrusao por horario</legend>
+            <label class="switch-row">
+              <span>Ativar regra</span>
+              <input id="afterEnabled" type="checkbox">
+            </label>
+            <div class="two-cols">
+              <label>Inicio<input id="afterStart" type="time" value="18:00"></label>
+              <label>Fim<input id="afterEnd" type="time" value="06:00"></label>
+            </div>
+            <label>Confirmacoes<input id="afterHits" type="number" min="1" max="20" value="2"></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Grupo parado</legend>
+            <label class="switch-row">
+              <span>Ativar regra</span>
+              <input id="groupEnabled" type="checkbox">
+            </label>
+            <div class="two-cols">
+              <label>Pessoas<input id="groupPeople" type="number" min="2" max="20" value="3"></label>
+              <label>Tempo (s)<input id="groupDwell" type="number" min="5" max="3600" value="120"></label>
+            </div>
+          </fieldset>
+
+          <section>
+            <div class="section-title">
+              <h2>Eventos</h2>
+              <button id="refreshEvents" class="ghost" type="button">Atualizar</button>
+            </div>
+            <div id="eventsList" class="events-list"></div>
+          </section>
+        </aside>
+      </section>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

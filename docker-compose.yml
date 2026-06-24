@@ -1,0 +1,22 @@
+services:
+  vms-analytics-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
+    image: portfolio-vms-analytics-demo:cuda
+    container_name: portfolio-vms-analytics-demo
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      VMS_DATA_DIR: /app/data
+      VMS_SESSION_TIMEOUT_S: "300"
+      VMS_ANALYSIS_FPS: "2"
+      VMS_YOLO_MODEL: yolov8n.pt
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,video
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    gpus: all
+

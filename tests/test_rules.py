@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from app.analytics import time_in_window
-from app.geometry import bbox_inside_roi, relative_polygon_to_pixels
+from app.geometry import bbox_center_distance, bbox_inside_roi, bbox_iou, relative_polygon_to_pixels
 from app.schemas import AnalyticsConfig, CameraCreate, CameraPatch, Point
 from app.store import JsonStore
 
@@ -28,6 +28,25 @@ class RuleTests(unittest.TestCase):
         )
         self.assertTrue(bbox_inside_roi((150, 70, 210, 130), roi))
         self.assertFalse(bbox_inside_roi((10, 10, 40, 40), roi))
+
+    def test_roi_accepts_many_points(self):
+        cfg = AnalyticsConfig(
+            enabled=True,
+            roi=[
+                Point(x=0.10, y=0.20),
+                Point(x=0.35, y=0.10),
+                Point(x=0.65, y=0.12),
+                Point(x=0.90, y=0.30),
+                Point(x=0.82, y=0.82),
+                Point(x=0.20, y=0.88),
+            ],
+        )
+        self.assertEqual(len(cfg.roi), 6)
+
+    def test_tracking_geometry_scores(self):
+        self.assertGreater(bbox_iou((10, 10, 80, 100), (20, 20, 90, 110)), 0.4)
+        self.assertLess(bbox_iou((10, 10, 40, 40), (200, 200, 240, 240)), 0.01)
+        self.assertLess(bbox_center_distance((10, 10, 50, 50), (14, 14, 54, 54)), 8)
 
     def test_store_revalidates_nested_analytics_patch(self):
         with TemporaryDirectory() as temp_dir:

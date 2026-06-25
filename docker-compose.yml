@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: portfolio-vms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-avm}
+      POSTGRES_USER: ${POSTGRES_USER:-avm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-avm-local-password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-avm} -d ${POSTGRES_DB:-avm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   vms-analytics-demo:
     build:
       context: .
@@ -6,9 +22,13 @@ services:
     image: portfolio-vms-analytics-demo:cuda
     container_name: portfolio-vms-analytics-demo
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8088:8088"
     environment:
+      VMS_DATABASE_URL: postgresql://${POSTGRES_USER:-avm}:${POSTGRES_PASSWORD:-avm-local-password}@postgres:5432/${POSTGRES_DB:-avm}
       VMS_DATA_DIR: /app/data
       VMS_SESSION_TIMEOUT_S: "300"
       VMS_ANALYSIS_FPS: "2"
@@ -27,3 +47,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./models:/app/models
+
+volumes:
+  postgres-data:

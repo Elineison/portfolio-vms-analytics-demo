@@ -73,6 +73,8 @@ docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 docker compose up -d --build
 ```
 
+Esse comando tambem sobe um PostgreSQL local automaticamente. O Compose cria um volume `postgres-data`, entao cada PC/notebook instalado para teste guarda seus proprios usuarios, cameras, configuracoes, trial e eventos.
+
 Com GPU NVIDIA:
 
 ```bash
@@ -101,6 +103,12 @@ docker compose logs -f
 
 ```bash
 docker compose down
+```
+
+Para apagar tambem o banco local daquela instalacao:
+
+```bash
+docker compose down -v
 ```
 
 ## Modelo YOLO

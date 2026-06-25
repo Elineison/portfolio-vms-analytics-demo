@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
 
 from app.detectors import PeopleDetector
-from app.geometry import bbox_inside_roi, relative_polygon_to_pixels
+from app.geometry import bbox_center_distance, bbox_diag, bbox_inside_roi, bbox_iou, draw_polygon, relative_polygon_to_pixels
 from app.mailer import EvidenceMailer
 from app.runtime import RuntimeManager
 from app.schemas import Camera, Detection, Event
@@ -24,6 +25,18 @@ def time_in_window(now_time, start, end) -> bool:
     if start <= end:
         return start <= now_time <= end
     return now_time >= start or now_time <= end
+
+
+@dataclass
+class PersonTrack:
+    id: int
+    bbox: tuple[int, int, int, int]
+    confidence: float
+    first_seen_s: float
+    last_seen_s: float
+    missed: int = 0
+    hits: int = 1
+    inside_roi: bool = False
 
 
 class CameraAnalysisTask:
@@ -54,6 +67,8 @@ class CameraAnalysisTask:
         self._after_cooldown_until = 0.0
         self._group_started_at: float | None = None
         self._group_cooldown_until = 0.0
+        self._tracks: dict[int, PersonTrack] = {}
+        self._next_track_id = 1
 
     def start(self) -> None:
         if self.task and not self.task.done():
@@ -93,11 +108,69 @@ class CameraAnalysisTask:
         self.latest_infer_ms = (time.perf_counter() - t0) * 1000.0
         self.latest_analyzed_at = time.time()
         roi_detections = [det for det in detections if bbox_inside_roi(det.bbox, roi)]
-        self.latest_detections = detections
+        self.latest_detections = self._update_tracks(detections, roi)
         self.latest_total_count = len(detections)
         self.latest_roi_count = len(roi_detections)
         self._apply_after_hours(len(roi_detections), frame)
         self._apply_group_loitering(len(roi_detections), frame)
+
+    def _update_tracks(self, detections: list[Detection], roi: list[tuple[int, int]]) -> list[Detection]:
+        now = time.time()
+        unmatched_track_ids = set(self._tracks)
+        tracked: list[Detection] = []
+
+        for detection in detections:
+            best_id: int | None = None
+            best_score = 0.0
+            for track_id in list(unmatched_track_ids):
+                track = self._tracks[track_id]
+                iou = bbox_iou(track.bbox, detection.bbox)
+                distance = bbox_center_distance(track.bbox, detection.bbox)
+                max_distance = max(42.0, bbox_diag(track.bbox) * 0.75)
+                distance_score = max(0.0, 1.0 - (distance / max_distance))
+                score = max(iou, distance_score * 0.72)
+                if score > best_score:
+                    best_id = track_id
+                    best_score = score
+
+            inside = bbox_inside_roi(detection.bbox, roi)
+            if best_id is not None and best_score >= 0.22:
+                track = self._tracks[best_id]
+                track.bbox = detection.bbox
+                track.confidence = detection.confidence
+                track.last_seen_s = now
+                track.missed = 0
+                track.hits += 1
+                track.inside_roi = inside
+                unmatched_track_ids.discard(best_id)
+            else:
+                best_id = self._next_track_id
+                self._next_track_id += 1
+                self._tracks[best_id] = PersonTrack(
+                    id=best_id,
+                    bbox=detection.bbox,
+                    confidence=detection.confidence,
+                    first_seen_s=now,
+                    last_seen_s=now,
+                    inside_roi=inside,
+                )
+
+            track = self._tracks[best_id]
+            tracked.append(detection.model_copy(update={
+                "track_id": best_id,
+                "first_seen_s": track.first_seen_s,
+                "last_seen_s": track.last_seen_s,
+                "age_s": max(0.0, now - track.first_seen_s),
+                "inside_roi": inside,
+            }))
+
+        for track_id in list(unmatched_track_ids):
+            track = self._tracks[track_id]
+            track.missed += 1
+            if now - track.last_seen_s > 3.0 or track.missed > 8:
+                self._tracks.pop(track_id, None)
+
+        return tracked
 
     def _save_snapshot(self, event_id: str, frame) -> str | None:
         try:
@@ -202,6 +275,16 @@ class CameraAnalysisTask:
             "state": "RUNNING",
             "total_people": self.latest_total_count,
             "roi_people": self.latest_roi_count,
+            "tracks": [
+                {
+                    "id": det.track_id,
+                    "bbox": det.bbox,
+                    "confidence": round(det.confidence, 3),
+                    "age_s": round(det.age_s, 1),
+                    "inside_roi": det.inside_roi,
+                }
+                for det in self.latest_detections
+            ],
             "last_infer_ms": round(self.latest_infer_ms, 1),
             "last_analyzed_age_s": None if self.latest_analyzed_at is None else round(max(0.0, now - self.latest_analyzed_at), 1),
             "after_hours": {
@@ -285,12 +368,17 @@ class AnalysisManager:
 def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], roi_count: int) -> None:
     height, width = frame.shape[:2]
     roi = relative_polygon_to_pixels(camera.analytics.roi, width, height)
+    if camera.analytics.enabled and len(roi) >= 3:
+        draw_polygon(frame, roi, (208, 88, 255))
     for detection in detections:
         x1, y1, x2, y2 = detection.bbox
-        inside = bbox_inside_roi(detection.bbox, roi)
+        inside = detection.inside_roi if detection.track_id is not None else bbox_inside_roi(detection.bbox, roi)
         color = (255, 110, 48) if inside else (148, 163, 184)
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        label = f"pessoa {detection.confidence:.2f}" if inside else f"fora ROI {detection.confidence:.2f}"
+        if detection.track_id is not None:
+            label = f"ID {detection.track_id} {detection.age_s:.1f}s {detection.confidence:.2f}"
+        else:
+            label = f"pessoa {detection.confidence:.2f}" if inside else f"fora ROI {detection.confidence:.2f}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(frame, (x1, max(0, y1 - th - 10)), (x1 + tw + 8, y1), color, -1)
         cv2.putText(

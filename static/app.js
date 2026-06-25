@@ -165,7 +165,7 @@ async function refreshSystem() {
   state.system = info;
   const detector = info.detector.available ? info.detector.backend : "sem YOLO";
   const device = info.detector.device || "cpu";
-  $("systemStatus").textContent = `${info.stream_standard} | ${detector} ${device}`;
+  $("systemStatus").textContent = `${info.store || "json"} | ${detector} ${device}`;
 }
 
 async function refreshMe() {

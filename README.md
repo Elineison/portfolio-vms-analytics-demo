@@ -134,7 +134,16 @@ Na primeira execucao com `yolov8n.pt`, o Ultralytics pode baixar o modelo public
 
 ## Banco de dados
 
-O MVP atual persiste dados em `data/store.json` para acelerar desenvolvimento local. Isso e suficiente para testes de bancada, mas nao e o ideal para uma demo autenticada com varios clientes.
+No Docker, o sistema sobe com PostgreSQL local automaticamente. O Compose cria:
+
+- container `portfolio-vms-postgres`;
+- banco `avm`;
+- usuario `avm`;
+- volume local `postgres-data`.
+
+Cada computador onde a demo for instalada passa a ter seu proprio banco local, com usuarios, cameras, configuracoes, trial e eventos daquela instalacao.
+
+Em execucao local sem `VMS_DATABASE_URL`, o app ainda usa `data/store.json` para acelerar desenvolvimento. Isso e suficiente para testes de bancada, mas nao e o ideal para uma demo autenticada com varios clientes.
 
 Recomendacao para demo real:
 
@@ -148,6 +157,10 @@ SQLite tambem funcionaria para uma demo local simples, mas PostgreSQL deixa o si
 
 ```text
 VMS_DATA_DIR=./data
+VMS_DATABASE_URL=postgresql://avm:senha@127.0.0.1:5432/avm
+POSTGRES_DB=avm
+POSTGRES_USER=avm
+POSTGRES_PASSWORD=senha
 VMS_SESSION_TIMEOUT_S=300
 VMS_YOLO_MODEL=yolov8n.pt
 VMS_ANALYSIS_FPS=2

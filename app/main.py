@@ -17,6 +17,7 @@ from app.analytics import AnalysisManager, draw_analytics_overlay
 from app.auth import active_trial_user, current_user, google_auth_configured, oauth, public_user, SESSION_SECRET
 from app.detectors import PeopleDetector
 from app.mailer import EvidenceMailer
+from app.pg_store import PostgresStore
 from app.runtime import RuntimeManager
 from app.schemas import CameraCreate, CameraPatch, RuntimeStatus, User
 from app.store import JsonStore
@@ -29,6 +30,7 @@ OUTBOX_DIR = DATA_DIR / "outbox"
 SESSION_TIMEOUT_S = int(os.getenv("VMS_SESSION_TIMEOUT_S", "300"))
 ANALYSIS_FPS = float(os.getenv("VMS_ANALYSIS_FPS", "2"))
 ADMIN_TOKEN = os.getenv("VMS_ADMIN_TOKEN", "")
+DATABASE_URL = os.getenv("VMS_DATABASE_URL", "")
 
 app = FastAPI(title="AVM - Analise de Video para Monitoramento")
 app.add_middleware(
@@ -48,7 +50,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.on_event("startup")
 async def startup() -> None:
-    app.state.store = JsonStore(DATA_DIR)
+    app.state.store = PostgresStore(DATABASE_URL) if DATABASE_URL else JsonStore(DATA_DIR)
     app.state.runtime = RuntimeManager()
     app.state.detector = PeopleDetector()
     app.state.mailer = EvidenceMailer(OUTBOX_DIR)
@@ -81,6 +83,7 @@ async def system_info() -> dict:
         "name": "AVM - Analise de Video para Monitoramento",
         "stream_standard": "websocket_jpeg",
         "session_timeout_s": SESSION_TIMEOUT_S,
+        "store": "postgres" if DATABASE_URL else "json",
         "detector": detector.__dict__,
         "auth": {
             "google_configured": google_auth_configured(),

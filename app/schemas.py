@@ -70,6 +70,11 @@ class Detection(BaseModel):
     bbox: tuple[int, int, int, int]
     confidence: float = 0.0
     label: str = "person"
+    track_id: int | None = None
+    first_seen_s: float = 0.0
+    last_seen_s: float = 0.0
+    age_s: float = 0.0
+    inside_roi: bool = False
 
 
 class RuntimeStatus(BaseModel):

@@ -274,7 +274,12 @@ async def snapshot(camera_id: str, user: User = Depends(current_user)) -> Respon
 
 
 @app.websocket("/ws/preview/{camera_id}")
-async def websocket_preview(websocket: WebSocket, camera_id: str, fps: int = Query(default=12, ge=1, le=30)) -> None:
+async def websocket_preview(
+    websocket: WebSocket,
+    camera_id: str,
+    fps: int = Query(default=12, ge=1, le=30),
+    hide_roi_overlay: bool = Query(default=False),
+) -> None:
     await websocket.accept()
     user_id = websocket.session.get("user_id")
     if not user_id:
@@ -317,6 +322,7 @@ async def websocket_preview(websocket: WebSocket, camera_id: str, fps: int = Que
                 camera,
                 app.state.analysis.detections_for(camera_id),
                 app.state.analysis.roi_count_for(camera_id),
+                show_roi=not hide_roi_overlay,
             )
             ok, encoded = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 82])
             if ok:

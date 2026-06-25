@@ -37,6 +37,9 @@ class PersonTrack:
     missed: int = 0
     hits: int = 1
     inside_roi: bool = False
+    best_face_crop: object | None = None
+    best_face_score: float = 0.0
+    best_face_seen_s: float = 0.0
 
 
 class CameraAnalysisTask:
@@ -69,6 +72,15 @@ class CameraAnalysisTask:
         self._group_cooldown_until = 0.0
         self._tracks: dict[int, PersonTrack] = {}
         self._next_track_id = 1
+        self._face_cascade = self._load_face_cascade()
+
+    def _load_face_cascade(self):
+        try:
+            cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
+            cascade = cv2.CascadeClassifier(str(cascade_path))
+            return None if cascade.empty() else cascade
+        except Exception:
+            return None
 
     def start(self) -> None:
         if self.task and not self.task.done():
@@ -108,13 +120,13 @@ class CameraAnalysisTask:
         self.latest_infer_ms = (time.perf_counter() - t0) * 1000.0
         self.latest_analyzed_at = time.time()
         roi_detections = [det for det in detections if bbox_inside_roi(det.bbox, roi)]
-        self.latest_detections = self._update_tracks(detections, roi)
+        self.latest_detections = self._update_tracks(detections, roi, frame)
         self.latest_total_count = len(detections)
         self.latest_roi_count = len(roi_detections)
         self._apply_after_hours(len(roi_detections), frame)
         self._apply_group_loitering(len(roi_detections), frame)
 
-    def _update_tracks(self, detections: list[Detection], roi: list[tuple[int, int]]) -> list[Detection]:
+    def _update_tracks(self, detections: list[Detection], roi: list[tuple[int, int]], frame) -> list[Detection]:
         now = time.time()
         unmatched_track_ids = set(self._tracks)
         tracked: list[Detection] = []
@@ -156,6 +168,8 @@ class CameraAnalysisTask:
                 )
 
             track = self._tracks[best_id]
+            if inside and self.camera.analytics.capture_face_snapshots:
+                self._update_best_face_crop(track, detection, frame)
             tracked.append(detection.model_copy(update={
                 "track_id": best_id,
                 "first_seen_s": track.first_seen_s,
@@ -196,12 +210,70 @@ class CameraAnalysisTask:
             return None
         return crop_x1, crop_y1, crop_x2, crop_y2
 
+    def _face_crop_score(self, crop, face_found: bool, face_area_ratio: float, detection_confidence: float) -> float:
+        if crop is None or crop.size == 0:
+            return 0.0
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        sharpness = min(1.0, float(cv2.Laplacian(gray, cv2.CV_64F).var()) / 500.0)
+        mean_light = float(gray.mean())
+        exposure = max(0.0, 1.0 - abs(mean_light - 118.0) / 118.0)
+        size_score = min(1.0, float(crop.shape[0] * crop.shape[1]) / (180.0 * 180.0))
+        frontal_bonus = 2.5 if face_found else 0.0
+        return frontal_bonus + sharpness + (exposure * 0.6) + size_score + face_area_ratio + (detection_confidence * 0.25)
+
+    def _extract_best_face_crop(self, frame, detection: Detection):
+        height, width = frame.shape[:2]
+        crop_bbox = self._person_crop_bbox(detection, width, height)
+        if crop_bbox is None:
+            return None, 0.0
+        x1, y1, x2, y2 = crop_bbox
+        upper_crop = frame[y1:y2, x1:x2]
+        if upper_crop.size == 0:
+            return None, 0.0
+
+        best_crop = upper_crop
+        face_found = False
+        face_area_ratio = 0.0
+        if self._face_cascade is not None:
+            gray = cv2.cvtColor(upper_crop, cv2.COLOR_BGR2GRAY)
+            faces = self._face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.08,
+                minNeighbors=4,
+                minSize=(24, 24),
+            )
+            if faces is not None and len(faces) > 0:
+                fx, fy, fw, fh = max(faces, key=lambda face: int(face[2]) * int(face[3]))
+                margin_x = int(fw * 0.45)
+                margin_top = int(fh * 0.45)
+                margin_bottom = int(fh * 0.75)
+                cx1 = max(0, int(fx) - margin_x)
+                cy1 = max(0, int(fy) - margin_top)
+                cx2 = min(upper_crop.shape[1], int(fx + fw) + margin_x)
+                cy2 = min(upper_crop.shape[0], int(fy + fh) + margin_bottom)
+                candidate = upper_crop[cy1:cy2, cx1:cx2]
+                if candidate.size > 0:
+                    best_crop = candidate
+                    face_found = True
+                    face_area_ratio = min(1.0, float(fw * fh) / float(max(1, upper_crop.shape[0] * upper_crop.shape[1])))
+
+        score = self._face_crop_score(best_crop, face_found, face_area_ratio, detection.confidence)
+        return best_crop.copy(), score
+
+    def _update_best_face_crop(self, track: PersonTrack, detection: Detection, frame) -> None:
+        crop, score = self._extract_best_face_crop(frame, detection)
+        if crop is None:
+            return
+        if score > track.best_face_score:
+            track.best_face_crop = crop
+            track.best_face_score = score
+            track.best_face_seen_s = time.time()
+
     def _save_face_snapshots(self, event_id: str, frame) -> list[str]:
         if not self.camera.analytics.capture_face_snapshots:
             return []
         try:
             self.evidence_dir.mkdir(parents=True, exist_ok=True)
-            height, width = frame.shape[:2]
             candidates = [
                 detection
                 for detection in self.latest_detections
@@ -209,14 +281,20 @@ class CameraAnalysisTask:
             ]
             candidates.sort(key=lambda detection: (detection.confidence, detection.age_s), reverse=True)
             saved: list[str] = []
+            used_track_ids: set[int] = set()
             for index, detection in enumerate(candidates[:4]):
-                crop_bbox = self._person_crop_bbox(detection, width, height)
-                if crop_bbox is None:
+                track = self._tracks.get(detection.track_id or -1)
+                if track and track.id in used_track_ids:
                     continue
-                x1, y1, x2, y2 = crop_bbox
-                crop = frame[y1:y2, x1:x2]
+                crop = track.best_face_crop if track and track.best_face_crop is not None else None
+                if crop is None:
+                    crop, _ = self._extract_best_face_crop(frame, detection)
+                if crop is None:
+                    continue
                 if crop.size == 0:
                     continue
+                if track:
+                    used_track_ids.add(track.id)
                 filename = f"{event_id}_pessoa_{index + 1}.jpg"
                 path = self.evidence_dir / filename
                 ok = cv2.imwrite(str(path), crop, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
@@ -414,10 +492,16 @@ class AnalysisManager:
         self._tasks.clear()
 
 
-def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], roi_count: int) -> None:
+def draw_analytics_overlay(
+    frame,
+    camera: Camera,
+    detections: list[Detection],
+    roi_count: int,
+    show_roi: bool = True,
+) -> None:
     height, width = frame.shape[:2]
     roi = relative_polygon_to_pixels(camera.analytics.roi, width, height)
-    if camera.analytics.enabled and len(roi) >= 3:
+    if show_roi and camera.analytics.enabled and len(roi) >= 3:
         draw_polygon(frame, roi, (208, 88, 255))
     for detection in detections:
         x1, y1, x2, y2 = detection.bbox

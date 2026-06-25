@@ -62,6 +62,7 @@ function showApp() {
 }
 
 function setRoiEditorVisible(visible) {
+  const changed = state.roiEditorVisible !== visible;
   state.roiEditorVisible = visible;
   if (!visible) {
     state.drawMode = false;
@@ -71,6 +72,9 @@ function setRoiEditorVisible(visible) {
   $("editRoi").textContent = visible ? "Ocultar ROI" : "Editar ROI";
   $("drawRoi").textContent = state.drawMode ? "Concluir ROI" : "Redesenhar";
   drawRoi();
+  if (changed && state.activeCamera) {
+    openPreview(state.activeCamera.id);
+  }
 }
 
 function markConfigDirty() {
@@ -250,7 +254,8 @@ async function selectCamera(cameraId) {
 function openPreview(cameraId) {
   closePreview();
   const protocol = location.protocol === "https:" ? "wss" : "ws";
-  state.ws = new WebSocket(`${protocol}://${location.host}/ws/preview/${cameraId}?fps=12`);
+  const hideRoiOverlay = state.roiEditorVisible ? "&hide_roi_overlay=1" : "";
+  state.ws = new WebSocket(`${protocol}://${location.host}/ws/preview/${cameraId}?fps=12${hideRoiOverlay}`);
   state.ws.binaryType = "blob";
   state.ws.onmessage = (event) => {
     const url = URL.createObjectURL(event.data);
@@ -413,7 +418,6 @@ async function saveConfig() {
     loadAnalytics(camera);
     await refreshCameras();
     setRoiEditorVisible(false);
-    openPreview(camera.id);
     $("systemStatus").textContent = "Análise aplicada";
     await refreshRuntimeStatus();
   } catch (error) {

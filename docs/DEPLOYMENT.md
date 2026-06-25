@@ -185,6 +185,7 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VMS_SESSION_SECRET=valor-longo-aleatorio
 VMS_ADMIN_TOKEN=valor-longo-aleatorio
+VMS_ADMIN_EMAILS=seu-email@gmail.com
 VMS_SMTP_HOST=smtp.gmail.com
 VMS_SMTP_PORT=587
 VMS_SMTP_USER=seu-email@gmail.com
@@ -195,9 +196,26 @@ VMS_SMTP_TLS=1
 
 O sistema usa o e-mail autenticado para envio de alertas da demo. Nao ha campo manual de e-mail por camera.
 
+O e-mail definido em `VMS_ADMIN_EMAILS` entra como administrador e nao consome trial. Os demais e-mails autenticados entram automaticamente no trial de 7 dias.
+
 Para demo real, nao definir `VMS_DEV_AUTH_EMAIL`. Essa variavel e apenas um bypass local de desenvolvimento e pula o login Google.
 
 Para Gmail SMTP, habilite verificacao em duas etapas na conta remetente e gere uma senha de app. Use a senha de app em `VMS_SMTP_PASSWORD`.
+
+## Operacao da Demo
+
+1. Acessar `http://IP_DO_SERVIDOR:8088`.
+2. Entrar com Google.
+3. Cadastrar a camera RTSP do cliente.
+4. Abrir preview.
+5. Usar `Editar ROI` para ajustar a area monitorada.
+6. Usar `Redesenhar` para marcar quantos pontos quiser.
+7. Clicar com botao direito em um ponto para remover.
+8. Ativar a regra desejada.
+9. Para teste com uma pessoa, configurar `Pessoas = 1` em `Grupo parado`.
+10. Clicar em `Aplicar análise`.
+
+A ROI exibida no preview normal e a ROI persistida no backend para aquela camera. Durante edicao, o canvas mostra a ROI em ajuste sobre o frame, preservando as coordenadas relativas para nao quebrar com zoom/tamanho do player.
 
 ## LGPD e Separacao por Usuario
 

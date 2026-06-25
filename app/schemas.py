@@ -21,7 +21,7 @@ class AfterHoursRule(BaseModel):
 
 class GroupLoiteringRule(BaseModel):
     enabled: bool = False
-    min_people: int = Field(default=3, ge=2, le=20)
+    min_people: int = Field(default=3, ge=1, le=20)
     dwell_s: int = Field(default=120, ge=5, le=3600)
     cooldown_s: int = Field(default=120, ge=5, le=3600)
 

@@ -18,6 +18,11 @@ SESSION_SECRET = os.getenv("VMS_SESSION_SECRET", "change-me-in-production")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 DEV_AUTH_EMAIL = os.getenv("VMS_DEV_AUTH_EMAIL", "")
+ADMIN_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("VMS_ADMIN_EMAILS", "").split(",")
+    if email.strip()
+}
 
 config = Config(environ=os.environ)
 oauth = OAuth(config)
@@ -36,10 +41,15 @@ def google_auth_configured() -> bool:
     return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
 
+def is_admin_email(email: str) -> bool:
+    return email.lower() in ADMIN_EMAILS
+
+
 def public_user(user: User) -> dict:
     expires = datetime.fromisoformat(user.trial_expires_at)
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
+    is_admin = is_admin_email(user.email)
     remaining = max(0, (expires - datetime.now(timezone.utc)).days)
     return {
         "id": user.id,
@@ -48,8 +58,9 @@ def public_user(user: User) -> dict:
         "picture": user.picture,
         "trial_started_at": user.trial_started_at,
         "trial_expires_at": user.trial_expires_at,
-        "trial_active": user.trial_active(),
-        "trial_days_remaining": remaining,
+        "is_admin": is_admin,
+        "trial_active": True if is_admin else user.trial_active(),
+        "trial_days_remaining": 9999 if is_admin else remaining,
     }
 
 
@@ -71,6 +82,8 @@ async def current_user(request: Request) -> User:
 
 async def active_trial_user(request: Request) -> User:
     user = await current_user(request)
+    if is_admin_email(user.email):
+        return user
     if not user.trial_active():
         raise HTTPException(status_code=402, detail="trial_expired")
     return user

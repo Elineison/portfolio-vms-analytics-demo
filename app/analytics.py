@@ -375,26 +375,16 @@ def draw_analytics_overlay(frame, camera: Camera, detections: list[Detection], r
         inside = detection.inside_roi if detection.track_id is not None else bbox_inside_roi(detection.bbox, roi)
         color = (255, 110, 48) if inside else (148, 163, 184)
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        if detection.track_id is not None:
-            label = f"ID {detection.track_id} {detection.age_s:.1f}s {detection.confidence:.2f}"
-        else:
-            label = f"pessoa {detection.confidence:.2f}" if inside else f"fora ROI {detection.confidence:.2f}"
-        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        cv2.rectangle(frame, (x1, max(0, y1 - th - 10)), (x1 + tw + 8, y1), color, -1)
-        cv2.putText(
-            frame,
-            label,
-            (x1 + 4, max(14, y1 - 5)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            1,
-            cv2.LINE_AA,
-        )
     lines = [
         f"{roi_count} pessoa(s) na area",
         f"Analise {'ativa' if camera.analytics.enabled else 'pausada'}",
     ]
+    tracked = [det for det in detections if det.track_id is not None]
+    if tracked:
+        track_line = "Tracks " + " | ".join(
+            f"#{det.track_id} {det.age_s:.0f}s" for det in tracked[:4]
+        )
+        lines.append(track_line)
     y = 28
     for line in lines:
         (tw, th), _ = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)

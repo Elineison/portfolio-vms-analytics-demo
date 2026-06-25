@@ -9,7 +9,7 @@ Importante: quem acessa o RTSP e o backend, nao o navegador. Para testar cameras
 O sistema permite cadastrar uma camera por URL RTSP, abrir preview via WebSocket e configurar duas analises:
 
 - Intrusao fora do horario permitido em uma area da imagem.
-- Grupo parado/conversando: 3 ou mais pessoas dentro da area por mais de um tempo configuravel.
+- Grupo parado/conversando: quantidade configuravel de pessoas, inclusive 1 pessoa, dentro da area por mais de um tempo configuravel.
 - Snapshot JPEG da ocorrencia como evidencia visual.
 - Envio opcional da evidencia por e-mail quando SMTP estiver configurado.
 
@@ -89,6 +89,7 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VMS_SESSION_SECRET=valor-longo-aleatorio
 VMS_ADMIN_TOKEN=valor-longo-aleatorio
+VMS_ADMIN_EMAILS=seu-email@gmail.com
 VMS_SMTP_HOST=smtp.gmail.com
 VMS_SMTP_PORT=587
 VMS_SMTP_USER=seu-email@gmail.com
@@ -100,6 +101,8 @@ VMS_SMTP_TLS=1
 Use `.env.example` como base, sem versionar o `.env` real.
 
 Cada e-mail autenticado tem cameras, configuracoes, eventos e snapshots separados. O trial padrao e de 7 dias por e-mail.
+
+E-mails em `VMS_ADMIN_EMAILS` entram como administradores e nao ficam limitados ao trial. Todos os demais e-mails entram automaticamente na regra de trial de 7 dias.
 
 Para testar o fluxo real do usuario, configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e SMTP. Nao use `VMS_DEV_AUTH_EMAIL` na demo real, porque ele cria uma sessao local e pula o login Google.
 
@@ -153,6 +156,36 @@ Recomendacao para demo real:
 
 SQLite tambem funcionaria para uma demo local simples, mas PostgreSQL deixa o sistema mais proximo de um produto SaaS multiusuario.
 
+## Como testar em um PC de cliente
+
+1. Instalar Docker no PC/notebook.
+2. Se houver GPU NVIDIA, instalar driver NVIDIA e NVIDIA Container Toolkit.
+3. Configurar `.env` com Google OAuth, e-mail SMTP, `VMS_SESSION_SECRET`, `VMS_ADMIN_TOKEN`, `VMS_ADMIN_EMAILS` e senha do Postgres.
+4. Subir:
+
+```bash
+docker compose up -d --build
+```
+
+5. Com GPU NVIDIA:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+```
+
+6. Abrir:
+
+```text
+http://IP_DO_PC:8088
+```
+
+7. Fazer login Google.
+8. Cadastrar a URL RTSP da camera local do cliente.
+9. Editar ROI, desenhando quantos pontos quiser; clique com botao direito em um ponto para remover.
+10. Ativar as analises, configurar horarios/quantidade/tempo e clicar em `Aplicar análise`.
+
+O backend detecta CUDA automaticamente quando `VMS_YOLO_DEVICE=auto`; se nao houver GPU compativel, usa CPU.
+
 ## Variaveis uteis
 
 ```text
@@ -168,6 +201,7 @@ VMS_YOLO_DEVICE=auto
 VMS_SESSION_SECRET=troque-este-valor
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+VMS_ADMIN_EMAILS=seu-email@gmail.com
 VMS_SMTP_HOST=smtp.gmail.com
 VMS_SMTP_PORT=587
 VMS_SMTP_USER=seu-email@gmail.com

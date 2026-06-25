@@ -4,8 +4,9 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from app.analytics import time_in_window
+from app.auth import is_admin_email
 from app.geometry import bbox_center_distance, bbox_inside_roi, bbox_iou, relative_polygon_to_pixels
-from app.schemas import AnalyticsConfig, CameraCreate, CameraPatch, Point
+from app.schemas import AnalyticsConfig, CameraCreate, CameraPatch, GroupLoiteringRule, Point
 from app.store import JsonStore
 
 
@@ -43,6 +44,10 @@ class RuleTests(unittest.TestCase):
         )
         self.assertEqual(len(cfg.roi), 6)
 
+    def test_group_rule_accepts_one_person(self):
+        rule = GroupLoiteringRule(enabled=True, min_people=1, dwell_s=5)
+        self.assertEqual(rule.min_people, 1)
+
     def test_tracking_geometry_scores(self):
         self.assertGreater(bbox_iou((10, 10, 80, 100), (20, 20, 90, 110)), 0.4)
         self.assertLess(bbox_iou((10, 10, 40, 40), (200, 200, 240, 240)), 0.01)
@@ -79,6 +84,9 @@ class RuleTests(unittest.TestCase):
             self.assertIsNotNone(reset)
             self.assertEqual(reset.email, user.email)
             self.assertEqual(reset.trial_extension_days, 7)
+
+    def test_admin_email_helper_defaults_to_false(self):
+        self.assertFalse(is_admin_email("demo@example.com"))
 
 
 if __name__ == "__main__":

@@ -172,7 +172,9 @@ async function refreshMe() {
   try {
     state.me = await api("/api/me");
     showApp();
-    $("userChip").textContent = `${state.me.email} | ${state.me.trial_days_remaining} dia(s)`;
+    $("userChip").textContent = state.me.is_admin
+      ? `${state.me.email} | admin`
+      : `${state.me.email} | ${state.me.trial_days_remaining} dia(s)`;
     if (!state.me.trial_active) {
       $("systemStatus").textContent = "Periodo de demo expirado";
     }
@@ -317,6 +319,18 @@ function nearestPoint(point) {
   return best;
 }
 
+function removeNearestRoiPoint(event) {
+  if (!state.roiEditorVisible || state.roi.length <= 3) {
+    $("systemStatus").textContent = "A ROI precisa manter pelo menos 3 pontos";
+    return;
+  }
+  const index = nearestPoint(canvasPoint(event));
+  state.roi.splice(index, 1);
+  state.dragIndex = null;
+  markConfigDirty();
+  drawRoi();
+}
+
 function drawRoi() {
   const canvas = $("roiCanvas");
   const rect = canvas.getBoundingClientRect();
@@ -459,6 +473,11 @@ $("useFullFrame").onclick = () => {
 
 $("roiCanvas").addEventListener("pointerdown", (event) => {
   if (!state.activeCamera || !state.roiEditorVisible) return;
+  if (event.button === 2) {
+    event.preventDefault();
+    removeNearestRoiPoint(event);
+    return;
+  }
   if (state.drawMode) {
     state.roi.push(canvasPoint(event));
     markConfigDirty();
@@ -466,6 +485,10 @@ $("roiCanvas").addEventListener("pointerdown", (event) => {
     return;
   }
   state.dragIndex = nearestPoint(canvasPoint(event));
+});
+
+$("roiCanvas").addEventListener("contextmenu", (event) => {
+  if (state.roiEditorVisible) event.preventDefault();
 });
 
 $("roiCanvas").addEventListener("pointermove", (event) => {

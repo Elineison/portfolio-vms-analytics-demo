@@ -330,8 +330,27 @@ input:focus {
 
 .camera-item {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  align-items: center;
+  padding: 8px;
   text-align: left;
+}
+
+.camera-open {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+}
+
+.camera-delete {
+  min-width: 0;
+  padding: 8px 10px;
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, 0.26) !important;
+  background: rgba(127, 29, 29, 0.18) !important;
 }
 
 .camera-item strong,
@@ -346,6 +365,13 @@ input:focus {
   overflow: hidden;
   color: var(--muted);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.camera-open strong,
+.camera-open span {
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -480,8 +506,12 @@ input:focus {
 
 .roi-tools {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.roi-tools #saveArea {
+  grid-column: 1 / -1;
 }
 
 .two-cols {

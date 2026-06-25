@@ -182,7 +182,8 @@ http://IP_DO_PC:8088
 7. Fazer login Google.
 8. Cadastrar a URL RTSP da camera local do cliente.
 9. Editar ROI, desenhando quantos pontos quiser; clique com botao direito em um ponto para remover.
-10. Ativar as analises, configurar horarios/quantidade/tempo e clicar em `Aplicar análise`.
+10. Clicar em `Salvar ROI` ou `Aplicar análise` para persistir a area no backend.
+11. Ativar as analises, configurar horarios/quantidade/tempo e clicar em `Aplicar análise`.
 
 O backend detecta CUDA automaticamente quando `VMS_YOLO_DEVICE=auto`; se nao houver GPU compativel, usa CPU.
 
@@ -229,9 +230,9 @@ VMS_SMTP_FROM=seu-email@gmail.com
 VMS_SMTP_TLS=1
 ```
 
-No Gmail, use uma senha de app da conta remetente. Nao use a senha normal da conta Google.
+No Gmail, crie a conta remetente manualmente pelo fluxo oficial do Google, habilite verificacao em duas etapas e gere uma senha de app. Use a senha de app em `VMS_SMTP_PASSWORD`; nao use a senha normal da conta Google.
 
-Recomendacao para demo: use um e-mail remetente exclusivo do sistema, por exemplo `avm.demo@suaempresa.com` ou uma conta Google Workspace/Gmail criada so para o AVM. O cliente continua autenticando com o Google dele; o sistema apenas usa esse remetente SMTP para enviar alertas ao e-mail autenticado do cliente.
+Recomendacao para demo: use um e-mail remetente exclusivo do sistema, por exemplo `suporte.avm-ia@gmail.com`, `avm.demo@suaempresa.com` ou uma conta Google Workspace/Gmail criada so para o AVM. O cliente continua autenticando com o Google dele; o sistema apenas usa esse remetente SMTP para enviar alertas ao e-mail autenticado do cliente.
 
 Sem SMTP configurado, a mensagem fica salva como `.eml` em:
 

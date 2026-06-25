@@ -201,6 +201,7 @@ O e-mail definido em `VMS_ADMIN_EMAILS` entra como administrador e nao consome t
 Para demo real, nao definir `VMS_DEV_AUTH_EMAIL`. Essa variavel e apenas um bypass local de desenvolvimento e pula o login Google.
 
 Para Gmail SMTP, habilite verificacao em duas etapas na conta remetente e gere uma senha de app. Use a senha de app em `VMS_SMTP_PASSWORD`.
+Se usar uma conta dedicada, como `suporte.avm-ia@gmail.com`, crie a conta manualmente no Google e guarde fora do repositorio as credenciais reais e a senha de app.
 
 ## Operacao da Demo
 
@@ -211,9 +212,10 @@ Para Gmail SMTP, habilite verificacao em duas etapas na conta remetente e gere u
 5. Usar `Editar ROI` para ajustar a area monitorada.
 6. Usar `Redesenhar` para marcar quantos pontos quiser.
 7. Clicar com botao direito em um ponto para remover.
-8. Ativar a regra desejada.
-9. Para teste com uma pessoa, configurar `Pessoas = 1` em `Grupo parado`.
-10. Clicar em `Aplicar análise`.
+8. Clicar em `Salvar ROI` para persistir a area.
+9. Ativar a regra desejada.
+10. Para teste com uma pessoa, configurar `Pessoas = 1` em `Grupo parado`.
+11. Clicar em `Aplicar análise`.
 
 A ROI exibida no preview normal e a ROI persistida no backend para aquela camera. Durante edicao, o canvas mostra a ROI em ajuste sobre o frame, preservando as coordenadas relativas para nao quebrar com zoom/tamanho do player.
 

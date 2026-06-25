@@ -67,7 +67,7 @@ function setRoiEditorVisible(visible) {
     state.drawMode = false;
     state.dragIndex = null;
   }
-  ["drawRoi", "useFullFrame"].forEach((id) => $(id).classList.toggle("hidden", !visible));
+  ["drawRoi", "useFullFrame", "saveArea"].forEach((id) => $(id).classList.toggle("hidden", !visible));
   $("editRoi").textContent = visible ? "Ocultar ROI" : "Editar ROI";
   $("drawRoi").textContent = state.drawMode ? "Concluir ROI" : "Redesenhar";
   drawRoi();
@@ -134,12 +134,21 @@ function renderCameras() {
     return;
   }
   state.cameras.forEach((camera) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "camera-item ghost";
-    button.innerHTML = `<strong>${escapeHtml(camera.name)}</strong><span>${escapeHtml(maskRtsp(camera.rtsp_url))}</span>`;
-    button.onclick = () => selectCamera(camera.id);
-    list.appendChild(button);
+    const item = document.createElement("div");
+    item.className = "camera-item";
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "camera-open ghost";
+    open.innerHTML = `<strong>${escapeHtml(camera.name)}</strong><span>${escapeHtml(maskRtsp(camera.rtsp_url))}</span>`;
+    open.onclick = () => selectCamera(camera.id);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "camera-delete ghost";
+    remove.textContent = "Excluir";
+    remove.onclick = () => deleteCamera(camera.id);
+    item.appendChild(open);
+    item.appendChild(remove);
+    list.appendChild(item);
   });
 }
 
@@ -305,9 +314,10 @@ function imageRectInCanvas() {
 }
 
 function nearestPoint(point) {
+  const points = state.roi;
   let best = 0;
   let distance = Infinity;
-  state.roi.forEach((candidate, index) => {
+  points.forEach((candidate, index) => {
     const dx = point.x - candidate.x;
     const dy = point.y - candidate.y;
     const score = Math.sqrt(dx * dx + dy * dy);
@@ -351,20 +361,35 @@ function drawRoi() {
     else ctx.lineTo(x, y);
   });
   if (!state.drawMode || state.roi.length >= 3) ctx.closePath();
-  ctx.fillStyle = "rgba(20, 184, 166, 0.08)";
-  ctx.strokeStyle = "#14b8a6";
+  ctx.fillStyle = "rgba(56, 189, 248, 0.10)";
+  ctx.strokeStyle = "#38bdf8";
   ctx.lineWidth = 2;
   if (state.roi.length >= 3) ctx.fill();
   ctx.stroke();
-  state.roi.forEach((point) => {
+  state.roi.forEach((point, index) => {
     ctx.beginPath();
     ctx.arc(imageRect.left + point.x * imageRect.width, imageRect.top + point.y * imageRect.height, 7, 0, Math.PI * 2);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
-    ctx.strokeStyle = "#0f766e";
+    ctx.strokeStyle = "#38bdf8";
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 10px system-ui";
+    ctx.fillText(String(index + 1), imageRect.left + point.x * imageRect.width - 3, imageRect.top + point.y * imageRect.height + 4);
   });
+}
+
+async function deleteCamera(cameraId) {
+  if (state.activeCamera?.id === cameraId) closePreview();
+  await api(`/api/cameras/${cameraId}`, { method: "DELETE" });
+  if (state.activeCamera?.id === cameraId) {
+    state.activeCamera = null;
+    $("activeCameraTitle").textContent = "Nenhuma camera selecionada";
+    $("emptyState").style.display = "";
+  }
+  await refreshCameras();
+  await refreshEvents();
 }
 
 async function saveConfig() {
@@ -471,6 +496,7 @@ $("useFullFrame").onclick = () => {
   markConfigDirty();
   drawRoi();
 };
+$("saveArea").onclick = saveConfig;
 
 $("roiCanvas").addEventListener("pointerdown", (event) => {
   if (!state.activeCamera || !state.roiEditorVisible) return;

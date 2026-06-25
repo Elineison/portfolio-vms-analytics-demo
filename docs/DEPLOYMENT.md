@@ -145,7 +145,9 @@ Snapshots de ocorrencia sao salvos em:
 ./data/events/
 ```
 
-Quando a opcao `Capturar rosto/recorte no alerta` estiver ativa na camera, o backend acompanha cada pessoa rastreada dentro da ROI e guarda o melhor recorte encontrado antes da confirmacao do evento. A escolha prioriza face frontal quando o OpenCV consegue localizar, alem de nitidez, tamanho e exposicao. Esses arquivos ficam no mesmo diretorio e sao anexados ao e-mail junto do snapshot principal.
+Quando a opcao `Capturar rosto/recorte no alerta` estiver ativa na camera, o backend acompanha cada pessoa rastreada dentro da ROI e guarda o melhor recorte encontrado antes da confirmacao do evento. A escolha exige uma face detectada pelo OpenCV e prioriza nitidez, tamanho e exposicao. Esses arquivos ficam no mesmo diretorio e sao anexados ao e-mail junto do snapshot principal. Se nenhuma face for detectada com qualidade suficiente, o sistema nao anexa um recorte ruim de tronco/braco.
+
+Eventos podem ser excluidos pela interface. Ao excluir, o backend tambem remove o snapshot principal e recortes associados daquele evento.
 
 Para envio real por e-mail, configurar no `docker-compose.yml`:
 

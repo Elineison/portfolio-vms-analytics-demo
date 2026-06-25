@@ -236,7 +236,9 @@ No Gmail, crie a conta remetente manualmente pelo fluxo oficial do Google, habil
 
 Recomendacao para demo: use um e-mail remetente exclusivo do sistema, por exemplo `suporte.avm-ia@gmail.com`, `avm.demo@suaempresa.com` ou uma conta Google Workspace/Gmail criada so para o AVM. O cliente continua autenticando com o Google dele; o sistema apenas usa esse remetente SMTP para enviar alertas ao e-mail autenticado do cliente.
 
-Se `Capturar rosto/recorte no alerta` estiver ativo na camera, o backend acompanha cada pessoa rastreada dentro da ROI e guarda o melhor recorte encontrado durante o periodo anterior ao alerta. A escolha prioriza face frontal quando o OpenCV consegue localizar, alem de nitidez, tamanho e exposicao. Quando o evento e confirmado, ate 4 melhores recortes aparecem no historico e seguem anexados ao e-mail, junto do snapshot principal.
+Se `Capturar rosto/recorte no alerta` estiver ativo na camera, o backend acompanha cada pessoa rastreada dentro da ROI e guarda o melhor recorte encontrado durante o periodo anterior ao alerta. A escolha exige uma face detectada pelo OpenCV e prioriza nitidez, tamanho e exposicao. Quando o evento e confirmado, ate 4 melhores recortes aparecem no historico e seguem anexados ao e-mail, junto do snapshot principal. Se nenhuma face for detectada com qualidade suficiente, o sistema nao anexa um recorte ruim de tronco/braco como se fosse rosto.
+
+Eventos podem ser excluidos pela interface. Ao excluir um evento, o backend remove tambem o snapshot principal e os recortes associados daquele evento.
 
 Sem SMTP configurado, a mensagem fica salva como `.eml` em:
 

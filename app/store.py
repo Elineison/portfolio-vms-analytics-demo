@@ -178,3 +178,12 @@ class JsonStore:
                 if event.id == event_id and event.user_id == user_id:
                     return event
             return None
+
+    def delete_event(self, user_id: str, event_id: str) -> Event | None:
+        with self._lock:
+            for index, event in enumerate(self._events):
+                if event.id == event_id and event.user_id == user_id:
+                    removed = self._events.pop(index)
+                    self._save()
+                    return removed
+            return None

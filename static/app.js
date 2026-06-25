@@ -175,6 +175,15 @@ function renderEvents(events) {
     const faceBlock = faces ? `<div class="face-strip">${faces}</div>` : "";
     const mail = event.notification_email ? `<span>E-mail: ${escapeHtml(event.notification_status || "pendente")}</span>` : "";
     item.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.message)}</span>${mail}${image}${faceBlock}`;
+    const actions = document.createElement("div");
+    actions.className = "event-actions";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "event-delete ghost";
+    remove.textContent = "Excluir";
+    remove.onclick = () => deleteEvent(event.id);
+    actions.appendChild(remove);
+    item.appendChild(actions);
     list.appendChild(item);
   });
 }
@@ -400,6 +409,11 @@ async function deleteCamera(cameraId) {
     $("emptyState").style.display = "";
   }
   await refreshCameras();
+  await refreshEvents();
+}
+
+async function deleteEvent(eventId) {
+  await api(`/api/events/${eventId}`, { method: "DELETE" });
   await refreshEvents();
 }
 

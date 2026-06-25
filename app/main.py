@@ -228,6 +228,30 @@ async def list_events(camera_id: str | None = None, user: User = Depends(current
     return [event.model_dump(mode="json") for event in app.state.store.list_events(user.id, camera_id)]
 
 
+def remove_evidence_file(filename: str | None) -> None:
+    if not filename:
+        return
+    try:
+        base = EVIDENCE_DIR.resolve()
+        path = (EVIDENCE_DIR / filename).resolve()
+        if base not in path.parents:
+            return
+        path.unlink(missing_ok=True)
+    except Exception:
+        return
+
+
+@app.delete("/api/events/{event_id}")
+async def delete_event(event_id: str, user: User = Depends(current_user)) -> dict:
+    event = app.state.store.delete_event(user.id, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="event not found")
+    remove_evidence_file(event.snapshot_file)
+    for filename in event.face_snapshot_files:
+        remove_evidence_file(filename)
+    return {"ok": True}
+
+
 @app.get("/api/events/{event_id}/snapshot")
 async def event_snapshot(event_id: str, user: User = Depends(current_user)) -> FileResponse:
     event = app.state.store.get_event(user.id, event_id)

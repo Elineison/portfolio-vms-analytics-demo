@@ -177,3 +177,11 @@ class PostgresStore:
         with self._lock, self._connect() as conn:
             row = conn.execute("SELECT payload FROM events WHERE id = %s AND user_id = %s", (event_id, user_id)).fetchone()
             return Event.model_validate(row["payload"]) if row else None
+
+    def delete_event(self, user_id: str, event_id: str) -> Event | None:
+        with self._lock, self._connect() as conn:
+            row = conn.execute("SELECT payload FROM events WHERE id = %s AND user_id = %s", (event_id, user_id)).fetchone()
+            if row is None:
+                return None
+            conn.execute("DELETE FROM events WHERE id = %s AND user_id = %s", (event_id, user_id))
+            return Event.model_validate(row["payload"])

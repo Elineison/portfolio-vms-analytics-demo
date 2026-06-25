@@ -72,15 +72,19 @@ class CameraAnalysisTask:
         self._group_cooldown_until = 0.0
         self._tracks: dict[int, PersonTrack] = {}
         self._next_track_id = 1
-        self._face_cascade = self._load_face_cascade()
+        self._face_cascades = self._load_face_cascades()
 
-    def _load_face_cascade(self):
+    def _load_face_cascades(self):
+        cascades = []
         try:
-            cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-            cascade = cv2.CascadeClassifier(str(cascade_path))
-            return None if cascade.empty() else cascade
+            for filename in ("haarcascade_frontalface_default.xml", "haarcascade_profileface.xml"):
+                cascade_path = Path(cv2.data.haarcascades) / filename
+                cascade = cv2.CascadeClassifier(str(cascade_path))
+                if not cascade.empty():
+                    cascades.append(cascade)
         except Exception:
-            return None
+            return []
+        return cascades
 
     def start(self) -> None:
         if self.task and not self.task.done():
@@ -202,15 +206,15 @@ class CameraAnalysisTask:
         x1, y1, x2, y2 = detection.bbox
         box_width = max(1, x2 - x1)
         box_height = max(1, y2 - y1)
-        crop_x1 = max(0, x1 + int(box_width * 0.15))
-        crop_x2 = min(width, x2 - int(box_width * 0.15))
-        crop_y1 = max(0, y1 - int(box_height * 0.03))
-        crop_y2 = min(height, y1 + int(box_height * 0.42))
+        crop_x1 = max(0, x1 - int(box_width * 0.08))
+        crop_x2 = min(width, x2 + int(box_width * 0.08))
+        crop_y1 = max(0, y1 - int(box_height * 0.08))
+        crop_y2 = min(height, y1 + int(box_height * 0.38))
         if crop_x2 - crop_x1 < 24 or crop_y2 - crop_y1 < 24:
             return None
         return crop_x1, crop_y1, crop_x2, crop_y2
 
-    def _face_crop_score(self, crop, face_found: bool, face_area_ratio: float, detection_confidence: float) -> float:
+    def _face_crop_score(self, crop, face_area_ratio: float, detection_confidence: float) -> float:
         if crop is None or crop.size == 0:
             return 0.0
         gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
@@ -218,8 +222,7 @@ class CameraAnalysisTask:
         mean_light = float(gray.mean())
         exposure = max(0.0, 1.0 - abs(mean_light - 118.0) / 118.0)
         size_score = min(1.0, float(crop.shape[0] * crop.shape[1]) / (180.0 * 180.0))
-        frontal_bonus = 2.5 if face_found else 0.0
-        return frontal_bonus + sharpness + (exposure * 0.6) + size_score + face_area_ratio + (detection_confidence * 0.25)
+        return 2.5 + sharpness + (exposure * 0.6) + size_score + face_area_ratio + (detection_confidence * 0.25)
 
     def _extract_best_face_crop(self, frame, detection: Detection):
         height, width = frame.shape[:2]
@@ -231,33 +234,36 @@ class CameraAnalysisTask:
         if upper_crop.size == 0:
             return None, 0.0
 
-        best_crop = upper_crop
-        face_found = False
-        face_area_ratio = 0.0
-        if self._face_cascade is not None:
-            gray = cv2.cvtColor(upper_crop, cv2.COLOR_BGR2GRAY)
-            faces = self._face_cascade.detectMultiScale(
+        if not self._face_cascades:
+            return None, 0.0
+
+        gray = cv2.cvtColor(upper_crop, cv2.COLOR_BGR2GRAY)
+        detected_faces = []
+        for cascade in self._face_cascades:
+            faces = cascade.detectMultiScale(
                 gray,
-                scaleFactor=1.08,
-                minNeighbors=4,
-                minSize=(24, 24),
+                scaleFactor=1.06,
+                minNeighbors=5,
+                minSize=(28, 28),
             )
             if faces is not None and len(faces) > 0:
-                fx, fy, fw, fh = max(faces, key=lambda face: int(face[2]) * int(face[3]))
-                margin_x = int(fw * 0.45)
-                margin_top = int(fh * 0.45)
-                margin_bottom = int(fh * 0.75)
-                cx1 = max(0, int(fx) - margin_x)
-                cy1 = max(0, int(fy) - margin_top)
-                cx2 = min(upper_crop.shape[1], int(fx + fw) + margin_x)
-                cy2 = min(upper_crop.shape[0], int(fy + fh) + margin_bottom)
-                candidate = upper_crop[cy1:cy2, cx1:cx2]
-                if candidate.size > 0:
-                    best_crop = candidate
-                    face_found = True
-                    face_area_ratio = min(1.0, float(fw * fh) / float(max(1, upper_crop.shape[0] * upper_crop.shape[1])))
+                detected_faces.extend(faces)
+        if not detected_faces:
+            return None, 0.0
 
-        score = self._face_crop_score(best_crop, face_found, face_area_ratio, detection.confidence)
+        fx, fy, fw, fh = max(detected_faces, key=lambda face: int(face[2]) * int(face[3]))
+        margin_x = int(fw * 0.55)
+        margin_top = int(fh * 0.55)
+        margin_bottom = int(fh * 0.85)
+        cx1 = max(0, int(fx) - margin_x)
+        cy1 = max(0, int(fy) - margin_top)
+        cx2 = min(upper_crop.shape[1], int(fx + fw) + margin_x)
+        cy2 = min(upper_crop.shape[0], int(fy + fh) + margin_bottom)
+        best_crop = upper_crop[cy1:cy2, cx1:cx2]
+        if best_crop.size == 0:
+            return None, 0.0
+        face_area_ratio = min(1.0, float(fw * fh) / float(max(1, upper_crop.shape[0] * upper_crop.shape[1])))
+        score = self._face_crop_score(best_crop, face_area_ratio, detection.confidence)
         return best_crop.copy(), score
 
     def _update_best_face_crop(self, track: PersonTrack, detection: Detection, frame) -> None:

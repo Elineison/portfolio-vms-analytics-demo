@@ -353,6 +353,20 @@ input:focus {
   background: rgba(127, 29, 29, 0.18) !important;
 }
 
+.event-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.event-delete {
+  min-height: 32px;
+  padding: 6px 10px;
+  color: #b42318 !important;
+  border-color: rgba(180, 35, 24, 0.24) !important;
+  background: #fff5f4 !important;
+}
+
 .camera-item strong,
 .event-item strong {
   display: block;

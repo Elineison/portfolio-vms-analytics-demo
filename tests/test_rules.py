@@ -72,7 +72,7 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(event.face_snapshot_files[0], "evt_pessoa_1.jpg")
         self.assertEqual(event.face_snapshot_urls[0], "/api/events/evt/faces/0")
 
-    def test_face_snapshot_saves_person_crop(self):
+    def test_face_snapshot_ignores_crop_without_detected_face(self):
         with TemporaryDirectory() as temp_dir:
             camera = Camera(
                 id="cam",
@@ -100,6 +100,45 @@ class RuleTests(unittest.TestCase):
                     inside_roi=True,
                 )
             ]
+            files = task._save_face_snapshots("evento", frame)
+            self.assertEqual(files, [])
+
+    def test_face_snapshot_saves_best_detected_face_crop(self):
+        class FakeFaceCascade:
+            def detectMultiScale(self, *_args, **_kwargs):
+                return np.array([[12, 10, 42, 42]])
+
+        with TemporaryDirectory() as temp_dir:
+            camera = Camera(
+                id="cam",
+                user_id="user",
+                name="Camera",
+                rtsp_url="rtsp://example/stream",
+                analytics=AnalyticsConfig(enabled=True, capture_face_snapshots=True),
+            )
+            task = CameraAnalysisTask(
+                camera=camera,
+                runtime=None,
+                detector=None,
+                store=None,
+                mailer=None,
+                evidence_dir=Path(temp_dir),
+                fps=2,
+            )
+            task._face_cascades = [FakeFaceCascade()]
+            frame = np.zeros((200, 200, 3), dtype=np.uint8)
+            detection = Detection(
+                bbox=(50, 40, 130, 180),
+                confidence=0.92,
+                track_id=1,
+                age_s=6,
+                inside_roi=True,
+            )
+            task.latest_detections = [detection]
+            crop, score = task._extract_best_face_crop(frame, detection)
+            self.assertIsNotNone(crop)
+            self.assertGreater(score, 0)
+            task.latest_detections = [detection]
             files = task._save_face_snapshots("evento", frame)
             self.assertEqual(len(files), 1)
             self.assertTrue((Path(temp_dir) / files[0]).exists())
@@ -140,6 +179,25 @@ class RuleTests(unittest.TestCase):
             self.assertIsNotNone(reset)
             self.assertEqual(reset.email, user.email)
             self.assertEqual(reset.trial_extension_days, 7)
+
+    def test_store_can_delete_event_by_user(self):
+        with TemporaryDirectory() as temp_dir:
+            store = JsonStore(Path(temp_dir))
+            user = store.upsert_google_user("demo@example.com", name="Demo")
+            event = Event(
+                id="evt",
+                user_id=user.id,
+                camera_id="cam",
+                camera_name="Camera",
+                type="group_loitering",
+                title="Alerta",
+                message="Evento confirmado",
+                started_at="2026-06-25T00:00:00+00:00",
+            )
+            store.add_event(event)
+            deleted = store.delete_event(user.id, event.id)
+            self.assertIsNotNone(deleted)
+            self.assertIsNone(store.get_event(user.id, event.id))
 
     def test_admin_email_helper_defaults_to_false(self):
         self.assertFalse(is_admin_email("demo@example.com"))

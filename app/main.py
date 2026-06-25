@@ -281,11 +281,20 @@ async def websocket_preview(websocket: WebSocket, camera_id: str, fps: int = Que
     min_interval = 1.0 / float(fps)
     deadline = time.monotonic() + SESSION_TIMEOUT_S
     last_sequence = -1
+    last_camera_refresh = 0.0
     try:
         while True:
             if time.monotonic() >= deadline:
                 await websocket.close(code=4000, reason=f"session_timeout_{SESSION_TIMEOUT_S}s")
                 return
+            now = time.monotonic()
+            if now - last_camera_refresh >= 0.5:
+                fresh_camera = app.state.store.get_camera(user.id, camera_id)
+                if fresh_camera is None:
+                    await websocket.close(code=4404, reason="camera_not_found")
+                    return
+                camera = fresh_camera
+                last_camera_refresh = now
             snap = session.snapshot()
             if snap.frame is None or snap.sequence == last_sequence:
                 await asyncio.sleep(0.05)

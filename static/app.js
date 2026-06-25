@@ -382,6 +382,7 @@ async function saveConfig() {
     loadAnalytics(camera);
     await refreshCameras();
     setRoiEditorVisible(false);
+    openPreview(camera.id);
     $("systemStatus").textContent = "Análise aplicada";
     await refreshRuntimeStatus();
   } catch (error) {

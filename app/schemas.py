@@ -31,6 +31,7 @@ class AnalyticsConfig(BaseModel):
     analysis_fps: float = Field(default=2.0, ge=0.2, le=10.0)
     confidence_threshold: float = Field(default=0.35, ge=0.05, le=0.95)
     min_box_area_ratio: float = Field(default=0.005, ge=0.0005, le=0.2)
+    capture_face_snapshots: bool = False
     notification_email: str | None = Field(default=None, max_length=254)
     roi: list[Point] = Field(default_factory=lambda: [
         Point(x=0.15, y=0.15),
@@ -102,6 +103,8 @@ class Event(BaseModel):
     people_count: int = 0
     snapshot_file: str | None = None
     snapshot_url: str | None = None
+    face_snapshot_files: list[str] = Field(default_factory=list)
+    face_snapshot_urls: list[str] = Field(default_factory=list)
     notification_email: str | None = None
     notification_status: str | None = None
 

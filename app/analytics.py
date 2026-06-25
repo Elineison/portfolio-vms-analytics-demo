@@ -184,9 +184,52 @@ class CameraAnalysisTask:
         except Exception:
             return None
 
+    def _person_crop_bbox(self, detection: Detection, width: int, height: int) -> tuple[int, int, int, int] | None:
+        x1, y1, x2, y2 = detection.bbox
+        box_width = max(1, x2 - x1)
+        box_height = max(1, y2 - y1)
+        crop_x1 = max(0, x1 + int(box_width * 0.15))
+        crop_x2 = min(width, x2 - int(box_width * 0.15))
+        crop_y1 = max(0, y1 - int(box_height * 0.03))
+        crop_y2 = min(height, y1 + int(box_height * 0.42))
+        if crop_x2 - crop_x1 < 24 or crop_y2 - crop_y1 < 24:
+            return None
+        return crop_x1, crop_y1, crop_x2, crop_y2
+
+    def _save_face_snapshots(self, event_id: str, frame) -> list[str]:
+        if not self.camera.analytics.capture_face_snapshots:
+            return []
+        try:
+            self.evidence_dir.mkdir(parents=True, exist_ok=True)
+            height, width = frame.shape[:2]
+            candidates = [
+                detection
+                for detection in self.latest_detections
+                if detection.inside_roi
+            ]
+            candidates.sort(key=lambda detection: (detection.confidence, detection.age_s), reverse=True)
+            saved: list[str] = []
+            for index, detection in enumerate(candidates[:4]):
+                crop_bbox = self._person_crop_bbox(detection, width, height)
+                if crop_bbox is None:
+                    continue
+                x1, y1, x2, y2 = crop_bbox
+                crop = frame[y1:y2, x1:x2]
+                if crop.size == 0:
+                    continue
+                filename = f"{event_id}_pessoa_{index + 1}.jpg"
+                path = self.evidence_dir / filename
+                ok = cv2.imwrite(str(path), crop, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
+                if ok:
+                    saved.append(filename)
+            return saved
+        except Exception:
+            return []
+
     def _emit_event(self, event_type: str, title: str, message: str, people_count: int, frame) -> None:
         event_id = str(uuid.uuid4())
         snapshot_file = self._save_snapshot(event_id, frame)
+        face_snapshot_files = self._save_face_snapshots(event_id, frame)
         owner = self.store.get_user(self.camera.user_id)
         recipient = owner.email if owner else None
         event = Event(
@@ -201,13 +244,19 @@ class CameraAnalysisTask:
             people_count=people_count,
             snapshot_file=snapshot_file,
             snapshot_url=f"/api/events/{event_id}/snapshot" if snapshot_file else None,
+            face_snapshot_files=face_snapshot_files,
+            face_snapshot_urls=[
+                f"/api/events/{event_id}/faces/{index}"
+                for index, _ in enumerate(face_snapshot_files)
+            ],
             notification_email=recipient,
             notification_status="not_configured",
         )
         if recipient:
             try:
                 snapshot_path = self.evidence_dir / snapshot_file if snapshot_file else None
-                event.notification_status = self.mailer.send_event(event, recipient, snapshot_path)
+                face_paths = [self.evidence_dir / filename for filename in face_snapshot_files]
+                event.notification_status = self.mailer.send_event(event, recipient, snapshot_path, face_paths)
             except Exception as exc:
                 event.notification_status = f"failed:{type(exc).__name__}"
         self.store.add_event(event)

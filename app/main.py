@@ -239,6 +239,18 @@ async def event_snapshot(event_id: str, user: User = Depends(current_user)) -> F
     return FileResponse(path, media_type="image/jpeg", filename=path.name)
 
 
+@app.get("/api/events/{event_id}/faces/{face_index}")
+async def event_face_snapshot(event_id: str, face_index: int, user: User = Depends(current_user)) -> FileResponse:
+    event = app.state.store.get_event(user.id, event_id)
+    if event is None or face_index < 0 or face_index >= len(event.face_snapshot_files):
+        raise HTTPException(status_code=404, detail="face snapshot not found")
+    filename = event.face_snapshot_files[face_index]
+    path = EVIDENCE_DIR / filename
+    if path.parent != EVIDENCE_DIR or not path.exists():
+        raise HTTPException(status_code=404, detail="face snapshot file not found")
+    return FileResponse(path, media_type="image/jpeg", filename=path.name)
+
+
 @app.get("/api/cameras/{camera_id}/snapshot")
 async def snapshot(camera_id: str, user: User = Depends(current_user)) -> Response:
     camera = app.state.store.get_camera(user.id, camera_id)

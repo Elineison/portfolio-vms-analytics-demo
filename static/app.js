@@ -88,6 +88,7 @@ function activeAnalytics() {
     analysis_fps: Number($("analysisFps").value || 2),
     confidence_threshold: Number($("confidenceThreshold").value || 0.35),
     min_box_area_ratio: Number($("minBoxArea").value || 0.005),
+    capture_face_snapshots: $("captureFaces").checked,
     roi: state.roi,
     after_hours: {
       enabled: afterEnabled,
@@ -115,6 +116,7 @@ function loadAnalytics(camera) {
   $("analysisFps").value = analytics.analysis_fps || 2;
   $("confidenceThreshold").value = analytics.confidence_threshold || 0.35;
   $("minBoxArea").value = analytics.min_box_area_ratio || 0.005;
+  $("captureFaces").checked = Boolean(analytics.capture_face_snapshots);
   $("afterEnabled").checked = Boolean(after.enabled);
   $("afterStart").value = (after.start || "18:00").slice(0, 5);
   $("afterEnd").value = (after.end || "06:00").slice(0, 5);
@@ -163,8 +165,12 @@ function renderEvents(events) {
     const item = document.createElement("div");
     item.className = "event-item";
     const image = event.snapshot_url ? `<a href="${event.snapshot_url}" target="_blank" rel="noreferrer"><img src="${event.snapshot_url}" alt="Snapshot da ocorrencia"></a>` : "";
+    const faces = (event.face_snapshot_urls || [])
+      .map((url, index) => `<a href="${url}" target="_blank" rel="noreferrer"><img src="${url}" alt="Recorte da pessoa ${index + 1}"></a>`)
+      .join("");
+    const faceBlock = faces ? `<div class="face-strip">${faces}</div>` : "";
     const mail = event.notification_email ? `<span>E-mail: ${escapeHtml(event.notification_status || "pendente")}</span>` : "";
-    item.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.message)}</span>${mail}${image}`;
+    item.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.message)}</span>${mail}${image}${faceBlock}`;
     list.appendChild(item);
   });
 }
@@ -530,7 +536,7 @@ window.addEventListener("pointerup", () => {
 });
 window.addEventListener("resize", drawRoi);
 
-["analyticsEnabled", "afterEnabled", "groupEnabled"].forEach((id) => {
+["analyticsEnabled", "captureFaces", "afterEnabled", "groupEnabled"].forEach((id) => {
   $(id).addEventListener("change", () => {
     if (id === "afterEnabled" || id === "groupEnabled") $("analyticsEnabled").checked = true;
     $("analysisStateText").textContent = $("analyticsEnabled").checked ? "Detecção de pessoas ativa" : "Detecção pausada";

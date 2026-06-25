@@ -22,7 +22,13 @@ class EvidenceMailer:
         self.sender = os.getenv("VMS_SMTP_FROM", self.username or "vms-demo@localhost")
         self.use_tls = os.getenv("VMS_SMTP_TLS", "1") != "0"
 
-    def send_event(self, event: Event, recipient: str, snapshot_path: Path | None) -> str:
+    def send_event(
+        self,
+        event: Event,
+        recipient: str,
+        snapshot_path: Path | None,
+        face_paths: list[Path] | None = None,
+    ) -> str:
         msg = EmailMessage()
         msg["Subject"] = f"[AVM Demo] {event.title}"
         msg["From"] = self.sender
@@ -35,6 +41,7 @@ class EvidenceMailer:
                 f"Camera: {event.camera_name}",
                 f"Pessoas na ROI: {event.people_count}",
                 f"Horario UTC: {event.started_at}",
+                f"Recortes de pessoas: {len(event.face_snapshot_files)}",
             ])
         )
         if snapshot_path and snapshot_path.exists():
@@ -43,6 +50,15 @@ class EvidenceMailer:
                 maintype="image",
                 subtype="jpeg",
                 filename=snapshot_path.name,
+            )
+        for face_path in face_paths or []:
+            if not face_path.exists():
+                continue
+            msg.add_attachment(
+                face_path.read_bytes(),
+                maintype="image",
+                subtype="jpeg",
+                filename=face_path.name,
             )
 
         if not self.host:

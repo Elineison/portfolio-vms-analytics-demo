@@ -11,6 +11,7 @@ O sistema permite cadastrar uma camera por URL RTSP, abrir preview via WebSocket
 - Intrusao fora do horario permitido em uma area da imagem.
 - Grupo parado/conversando: quantidade configuravel de pessoas, inclusive 1 pessoa, dentro da area por mais de um tempo configuravel.
 - Snapshot JPEG da ocorrencia como evidencia visual.
+- Recortes opcionais das pessoas que geraram o alerta, salvos junto do evento.
 - Envio opcional da evidencia por e-mail quando SMTP estiver configurado.
 
 Este projeto foi desenhado para portfolio e demonstracao comercial. Ele nao depende de SDK proprietario, bancos reais, credenciais da Locktec, modelos privados ou dados de producao.
@@ -183,7 +184,8 @@ http://IP_DO_PC:8088
 8. Cadastrar a URL RTSP da camera local do cliente.
 9. Editar ROI, desenhando quantos pontos quiser; clique com botao direito em um ponto para remover.
 10. Clicar em `Salvar ROI` ou `Aplicar análise` para persistir a area no backend.
-11. Ativar as analises, configurar horarios/quantidade/tempo e clicar em `Aplicar análise`.
+11. Opcionalmente ativar `Capturar rosto/recorte no alerta`.
+12. Ativar as analises, configurar horarios/quantidade/tempo e clicar em `Aplicar análise`.
 
 O backend detecta CUDA automaticamente quando `VMS_YOLO_DEVICE=auto`; se nao houver GPU compativel, usa CPU.
 
@@ -233,6 +235,8 @@ VMS_SMTP_TLS=1
 No Gmail, crie a conta remetente manualmente pelo fluxo oficial do Google, habilite verificacao em duas etapas e gere uma senha de app. Use a senha de app em `VMS_SMTP_PASSWORD`; nao use a senha normal da conta Google.
 
 Recomendacao para demo: use um e-mail remetente exclusivo do sistema, por exemplo `suporte.avm-ia@gmail.com`, `avm.demo@suaempresa.com` ou uma conta Google Workspace/Gmail criada so para o AVM. O cliente continua autenticando com o Google dele; o sistema apenas usa esse remetente SMTP para enviar alertas ao e-mail autenticado do cliente.
+
+Se `Capturar rosto/recorte no alerta` estiver ativo na camera, o backend tenta salvar ate 4 recortes da regiao superior das pessoas rastreadas dentro da ROI no momento em que o evento e confirmado. Esses recortes aparecem no historico do evento e tambem seguem anexados ao e-mail, junto do snapshot principal.
 
 Sem SMTP configurado, a mensagem fica salva como `.eml` em:
 

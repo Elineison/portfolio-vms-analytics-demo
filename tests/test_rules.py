@@ -3,10 +3,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from app.analytics import time_in_window
+import numpy as np
+
+from app.analytics import CameraAnalysisTask, time_in_window
 from app.auth import is_admin_email
 from app.geometry import bbox_center_distance, bbox_inside_roi, bbox_iou, relative_polygon_to_pixels
-from app.schemas import AnalyticsConfig, CameraCreate, CameraPatch, GroupLoiteringRule, Point
+from app.schemas import AnalyticsConfig, Camera, CameraCreate, CameraPatch, Detection, Event, GroupLoiteringRule, Point
 from app.store import JsonStore
 
 
@@ -47,6 +49,60 @@ class RuleTests(unittest.TestCase):
     def test_group_rule_accepts_one_person(self):
         rule = GroupLoiteringRule(enabled=True, min_people=1, dwell_s=5)
         self.assertEqual(rule.min_people, 1)
+
+    def test_face_snapshot_capture_is_configurable(self):
+        default_config = AnalyticsConfig()
+        enabled_config = AnalyticsConfig(capture_face_snapshots=True)
+        self.assertFalse(default_config.capture_face_snapshots)
+        self.assertTrue(enabled_config.capture_face_snapshots)
+
+    def test_event_accepts_face_snapshot_urls(self):
+        event = Event(
+            id="evt",
+            user_id="user",
+            camera_id="cam",
+            camera_name="Camera",
+            type="group_loitering",
+            title="Alerta",
+            message="Evento confirmado",
+            started_at="2026-06-25T00:00:00+00:00",
+            face_snapshot_files=["evt_pessoa_1.jpg"],
+            face_snapshot_urls=["/api/events/evt/faces/0"],
+        )
+        self.assertEqual(event.face_snapshot_files[0], "evt_pessoa_1.jpg")
+        self.assertEqual(event.face_snapshot_urls[0], "/api/events/evt/faces/0")
+
+    def test_face_snapshot_saves_person_crop(self):
+        with TemporaryDirectory() as temp_dir:
+            camera = Camera(
+                id="cam",
+                user_id="user",
+                name="Camera",
+                rtsp_url="rtsp://example/stream",
+                analytics=AnalyticsConfig(enabled=True, capture_face_snapshots=True),
+            )
+            task = CameraAnalysisTask(
+                camera=camera,
+                runtime=None,
+                detector=None,
+                store=None,
+                mailer=None,
+                evidence_dir=Path(temp_dir),
+                fps=2,
+            )
+            frame = np.zeros((200, 200, 3), dtype=np.uint8)
+            task.latest_detections = [
+                Detection(
+                    bbox=(50, 40, 130, 180),
+                    confidence=0.92,
+                    track_id=1,
+                    age_s=6,
+                    inside_roi=True,
+                )
+            ]
+            files = task._save_face_snapshots("evento", frame)
+            self.assertEqual(len(files), 1)
+            self.assertTrue((Path(temp_dir) / files[0]).exists())
 
     def test_tracking_geometry_scores(self):
         self.assertGreater(bbox_iou((10, 10, 80, 100), (20, 20, 90, 110)), 0.4)

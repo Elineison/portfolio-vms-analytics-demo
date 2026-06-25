@@ -548,6 +548,19 @@ legend {
   background: #0b1016;
 }
 
+.face-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.face-strip img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  margin-top: 0;
+}
+
 .runtime-panel {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

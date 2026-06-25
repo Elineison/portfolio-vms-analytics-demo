@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AVM - Analise de Video para Monitoramento</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260625-4">
+  <link rel="stylesheet" href="/static/styles.css?v=20260625-5">
 </head>
 <body>
   <section id="authScreen" class="auth-screen hidden">
@@ -93,6 +93,10 @@
             <span>Ativar analytics</span>
             <input id="analyticsEnabled" type="checkbox">
           </label>
+          <label class="switch-row">
+            <span>Capturar rosto/recorte no alerta</span>
+            <input id="captureFaces" type="checkbox">
+          </label>
 
           <div class="roi-tools">
             <button id="editRoi" class="ghost" type="button">Editar ROI</button>
@@ -159,6 +163,6 @@
       </section>
     </section>
   </main>
-  <script src="/static/app.js?v=20260625-4"></script>
+  <script src="/static/app.js?v=20260625-5"></script>
 </body>
 </html>

@@ -145,6 +145,8 @@ Snapshots de ocorrencia sao salvos em:
 ./data/events/
 ```
 
+Quando a opcao `Capturar rosto/recorte no alerta` estiver ativa na camera, o backend tambem tenta salvar recortes das pessoas rastreadas dentro da ROI no momento da confirmacao do evento. Esses arquivos ficam no mesmo diretorio e sao anexados ao e-mail junto do snapshot principal.
+
 Para envio real por e-mail, configurar no `docker-compose.yml`:
 
 ```yaml
@@ -213,9 +215,10 @@ Se usar uma conta dedicada, como `suporte.avm-ia@gmail.com`, crie a conta manual
 6. Usar `Redesenhar` para marcar quantos pontos quiser.
 7. Clicar com botao direito em um ponto para remover.
 8. Clicar em `Salvar ROI` para persistir a area.
-9. Ativar a regra desejada.
-10. Para teste com uma pessoa, configurar `Pessoas = 1` em `Grupo parado`.
-11. Clicar em `Aplicar análise`.
+9. Opcionalmente ativar `Capturar rosto/recorte no alerta`.
+10. Ativar a regra desejada.
+11. Para teste com uma pessoa, configurar `Pessoas = 1` em `Grupo parado`.
+12. Clicar em `Aplicar análise`.
 
 A ROI exibida no preview normal e a ROI persistida no backend para aquela camera. Durante edicao, o canvas mostra a ROI em ajuste sobre o frame, preservando as coordenadas relativas para nao quebrar com zoom/tamanho do player.
 
